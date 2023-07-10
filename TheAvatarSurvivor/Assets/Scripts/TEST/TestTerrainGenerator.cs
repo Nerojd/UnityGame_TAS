@@ -28,7 +28,7 @@ public class TestTerrainGenerator : NetworkBehaviour
         SpawnSphereServerRpc(playerPos);
     }
 
-    [ServerRpc]
+    [ServerRpc (RequireOwnership = false)]
     void SpawnSphereServerRpc(Vector3 playerPos)
     {
         Vector3 pos = new(Random.Range(-5f, 5f), Random.Range(-5f, 5f), Random.Range(-5f, 5f));
