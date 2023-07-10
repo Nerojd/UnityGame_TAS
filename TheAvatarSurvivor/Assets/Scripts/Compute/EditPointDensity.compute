@@ -1,0 +1,64 @@
+#pragma kernel CSMain
+
+static const int numThreads = 2;
+
+struct PointData {
+	float3 position;
+	float density;
+};
+
+RWStructuredBuffer<PointData> points;
+int numPointsPerAxis;
+float boundsSize;
+float3 centre;
+float spacing;
+float3 brushCentre;
+float brushRadius;
+float brushPower;
+float deltaTime;
+int weight;
+float isoLevel;
+
+// return smooth value between 0 and 1 (0 when t = minVal, 1 when t = maxVal)
+float smoothstep(float minVal, float maxVal, float t) {
+	t = saturate((t - minVal) / (maxVal - minVal));
+	return t * t * (3 - 2 * t);
+}
+
+int indexFromCoord(uint x, uint y, uint z) {
+	return ((z * numPointsPerAxis * numPointsPerAxis) + (y * numPointsPerAxis) + x);
+}
+
+[numthreads(numThreads, numThreads, numThreads)]
+void CSMain (int3 id : SV_DispatchThreadID)
+{
+	if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
+		return;
+	}
+
+	float3 pos = centre + id * spacing - boundsSize / 2;
+	float3 offset = pos - brushCentre;
+	float sqrDst = dot(offset, offset);
+
+	if (sqrDst <= brushRadius * brushRadius) {
+		float dst = sqrt(sqrDst);
+		float brushWeight = 1 - smoothstep(brushRadius * 0.5, brushRadius, dst);
+
+		int index = indexFromCoord(id.x, id.y, id.z);
+		float finalVal = points[index].density;
+		finalVal += weight * deltaTime * brushWeight * brushPower;
+
+		float maxIsoLevel = isoLevel * 2;
+		if (finalVal > maxIsoLevel)
+		{
+			finalVal = maxIsoLevel;
+		}
+
+		float minIsoLevel = -isoLevel * 2;
+		if (finalVal < minIsoLevel)
+		{
+			finalVal = minIsoLevel;
+		}
+		points[index].density = finalVal;
+	}
+}

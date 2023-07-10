@@ -1,0 +1,99 @@
+﻿#pragma kernel March
+#include "/Includes/MarchTables.compute"
+
+static const int numThreads = 2;
+
+struct Triangle {
+    float3 vertexC;
+    float3 vertexB;
+    float3 vertexA;
+};
+
+AppendStructuredBuffer<Triangle> triangles;
+RWStructuredBuffer<float4> points;
+
+int numPointsPerAxis;
+float isoLevel;
+float3 chunkCoord;
+
+float3 interpolateVerts(float4 v1, float4 v2) {
+    float t = (isoLevel - v1.w) / (v2.w - v1.w);
+    return v1.xyz + t * (v2.xyz-v1.xyz);
+}
+
+int indexFromCoord(int3 coord) {
+    return coord.z * numPointsPerAxis * numPointsPerAxis + coord.y * numPointsPerAxis + coord.x;
+}
+
+[numthreads(numThreads,numThreads,numThreads)]
+void March (int3 id : SV_DispatchThreadID)
+{
+    // Stop one point before the end because voxel includes neighbouring points
+    int numCubesPerAxis = numPointsPerAxis - 1;
+    if (id.x >= numCubesPerAxis || id.y >= numCubesPerAxis || id.z >= numCubesPerAxis) {
+        return;
+    }
+
+    // 8 corners of the current cube
+    float4 cubeCornerCoords[8];
+    cubeCornerCoords[0] = points[indexFromCoord(id + int3(0, 0, 0))];
+    cubeCornerCoords[1] = points[indexFromCoord(id + int3(1, 0, 0))];
+    cubeCornerCoords[2] = points[indexFromCoord(id + int3(1, 0, 1))];
+    cubeCornerCoords[3] = points[indexFromCoord(id + int3(0, 0, 1))];
+    cubeCornerCoords[4] = points[indexFromCoord(id + int3(0, 1, 0))];
+    cubeCornerCoords[5] = points[indexFromCoord(id + int3(1, 1, 0))];
+    cubeCornerCoords[6] = points[indexFromCoord(id + int3(1, 1, 1))];
+    cubeCornerCoords[7] = points[indexFromCoord(id + int3(0, 1, 1))];
+
+    // Calculate unique index for each cube configuration.
+    // There are 256 possible values (cube has 8 corners, so 2^8 possibilites).
+    // A value of 0 means cube is entirely inside the surface; 255 entirely outside.
+    // The value is used to look up the edge table, which indicates which edges of the cube the surface passes through.
+    int cubeConfiguration = 0;
+    for (int i = 0; i < 8; i++) {
+        // Think of the configuration as an 8-bit binary number (each bit represents the state of a corner point).
+        // The state of each corner point is either 0: above the surface, or 1: below the surface.
+        // The code below sets the corresponding bit to 1, if the point is below the surface.
+        if (cubeCornerCoords[i].w < isoLevel) {
+            cubeConfiguration |= (1 << i);
+        }
+    }
+    
+    // Get array of the edges of the cube that the surface passes through.
+    int edgeIndices[] = triangulation[cubeConfiguration];
+
+    // Create triangles for the current cube configuration
+    for (i = 0; i < 16; i += 3) {
+        // If edge index is -1, then no further vertices exist in this configuration.
+        if (edgeIndices[i] == -1) { break; }
+
+        // Get indices of the two corner points defining the edge that the surface passes through.
+        // (Do this for each of the three edges we're currently looking at).
+        int edgeIndexA = edgeIndices[i];
+        int a0 = cornerIndexAFromEdge[edgeIndexA];
+        int a1 = cornerIndexBFromEdge[edgeIndexA];
+
+        int edgeIndexB = edgeIndices[i + 1];
+        int b0 = cornerIndexAFromEdge[edgeIndexB];
+        int b1 = cornerIndexBFromEdge[edgeIndexB];
+
+        int edgeIndexC = edgeIndices[i + 2];
+        int c0 = cornerIndexAFromEdge[edgeIndexC];
+        int c1 = cornerIndexBFromEdge[edgeIndexC];
+
+        // Calculate positions of each vertex
+        float3 vertexA = interpolateVerts(cubeCornerCoords[a0], cubeCornerCoords[a1]);
+        float3 vertexB = interpolateVerts(cubeCornerCoords[b0], cubeCornerCoords[b1]);
+        float3 vertexC = interpolateVerts(cubeCornerCoords[c0], cubeCornerCoords[c1]);
+
+        // Create triangle
+        Triangle tri;
+        tri.vertexA = vertexA;
+        tri.vertexB = vertexB;
+        tri.vertexC = vertexC;
+
+        triangles.Append(tri);
+    }
+
+
+}
