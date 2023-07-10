@@ -11,6 +11,7 @@ namespace DoDo.Player
         public static event EventHandler OnAnyPlayerSpawned;
 
         [SerializeField] private PlayerVisual playerVisual;
+        NetworkObject playerNetworkObject = null;
         PlayerData playerData;
         int playerIndex = -1;
 
@@ -29,7 +30,6 @@ namespace DoDo.Player
             return currentHealth / maxHealth;
         }
 
-        NetworkObject playerNetworkObject = null;
 
         public static Player LocalInstance { get; private set; }
 

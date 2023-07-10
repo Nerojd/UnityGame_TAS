@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 public class MatchManager : NetworkBehaviour
 {
@@ -42,8 +41,6 @@ public class MatchManager : NetworkBehaviour
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Transform playerTransform = Instantiate(playerPrefab);
-            playerTransform.position = GetSpawnPosition(MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(clientId));
-
             playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
         }
     }
@@ -53,7 +50,7 @@ public class MatchManager : NetworkBehaviour
         //autoTestGamePausedState = true;
     }
 
-    Vector3 GetSpawnPosition(int index)
+    public Vector3 GetSpawnPosition(int index)
     {
         return spawnPositionList[index].position;
     }

@@ -2,23 +2,23 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 
 public class TestMatchManager : NetworkBehaviour
 {
     [SerializeField] private Transform playerPrefab;
+    [SerializeField] private List<Transform> spawnPositionList;
 
 
-    // Start is called before the first frame update
-    void Start()
+    public static TestMatchManager Instance { get; private set; }
+
+    /*******************************************/
+    /*              Unity Methods              */
+    /*******************************************/
+    private void Awake()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        Instance = this;
     }
 
     /*******************************************/
@@ -29,14 +29,24 @@ public class TestMatchManager : NetworkBehaviour
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Transform playerTransform = Instantiate(playerPrefab);
-
+            
+            // Instantiate player on Server
             playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+
+            // Teleport player to a different location
+            int index = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(clientId);
+            playerTransform.GetComponent<NetworkTransform>().Teleport(GetSpawnPosition(index), transform.rotation, transform.localScale);
         }
     }
 
     private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
     {
         //autoTestGamePausedState = true;
+    }
+
+    public Vector3 GetSpawnPosition(int index)
+    {
+        return spawnPositionList[index].position;
     }
 
     /******************************************/
