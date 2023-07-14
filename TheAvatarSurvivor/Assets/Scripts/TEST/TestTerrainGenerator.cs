@@ -44,13 +44,13 @@ public class TestTerrainGenerator : NetworkBehaviour
     }
 
 
-    public void InitChunkOnServer(Vector3 playerPos)
+    public void InitChunkOnServer()
     {
-        InitChunkServerRpc(playerPos);
+        InitChunkServerRpc();
     }
 
     [ServerRpc (RequireOwnership = false)]
-    void InitChunkServerRpc(Vector3 playerPos)
+    void InitChunkServerRpc()
     {
         for (int x = 0; x < meshSettings.numChunks.x; x++)
         {
@@ -58,10 +58,10 @@ public class TestTerrainGenerator : NetworkBehaviour
             {
                 for (int z = 0; z < meshSettings.numChunks.z; z++)
                 {
-                    // NETWORK SERVER INSTANTIATION
+                    // Instantiation on SERVER
                     Transform chunkInst = Instantiate(chunkPrefab);
 
-                    // NETWORK CLIENT INSTANTIATION
+                    // Instantiation on CLIENTS
                     NetworkObject networkChunkObj = chunkInst.GetComponent<NetworkObject>();
                     networkChunkObj.Spawn(true);
                     networkChunkObj.TrySetParent(gameObject.GetComponent<NetworkObject>());
@@ -82,13 +82,19 @@ public class TestTerrainGenerator : NetworkBehaviour
         Transform targetInst = targetObject.GetComponent<Transform>();
         if (targetInst != null)
         {
-            // SETUP CHUNK
+            // Setup Chunk
             Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
             targetInst.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
             Chunk chunk = targetInst.gameObject.GetComponent<Chunk>();
             chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, targetInst.gameObject, meshGenerator);
             chunk.SetMaterial(mat);
+            
+            // Create Mesh
+            meshGenerator.GenerateDensity(chunk);
+            meshGenerator.UpdateChunkMesh(chunk);
+
             chunkDictionary[chunk.coord] = chunk;
+
         }
         else
         {

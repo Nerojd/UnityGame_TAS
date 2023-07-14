@@ -10,6 +10,10 @@ public class TestMatchManager : NetworkBehaviour
     [SerializeField] private Transform playerPrefab;
     [SerializeField] private List<Transform> spawnPositionList;
 
+    public static event EventHandler OnAllClientPlayerSpawned;
+
+    int playerSpawnedCount = 0;
+    bool allClientsHasSpawned = false;
 
     public static TestMatchManager Instance { get; private set; }
 
@@ -29,10 +33,8 @@ public class TestMatchManager : NetworkBehaviour
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Transform playerTransform = Instantiate(playerPrefab);
-            
-            Debug.Log("ClientId spawned : " +  clientId);
 
-            // Instantiate player on Server
+            // Instantiate player on Server and on each clients
             playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
         }
     }
@@ -40,6 +42,7 @@ public class TestMatchManager : NetworkBehaviour
     private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
     {
         //autoTestGamePausedState = true;
+        playerSpawnedCount--;
     }
 
     public Vector3 GetSpawnPosition(int index)
@@ -64,5 +67,30 @@ public class TestMatchManager : NetworkBehaviour
             NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
             NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
         }
+    }
+
+    public void NotifyServerPlayerHasSpawned()
+    {
+        NotifyServerPlayerHasSpawnedServerRpc();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    void NotifyServerPlayerHasSpawnedServerRpc()
+    {
+        playerSpawnedCount++;
+
+        if (NetworkManager.Singleton.ConnectedClientsIds.Count == playerSpawnedCount)
+        {
+            allClientsHasSpawned = true;
+        }
+
+        if (allClientsHasSpawned)
+        {
+            OnAllClientPlayerSpawned?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public override void OnDestroy()
+    {
     }
 }

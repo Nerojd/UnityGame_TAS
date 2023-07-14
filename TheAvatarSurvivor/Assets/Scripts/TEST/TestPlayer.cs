@@ -1,4 +1,5 @@
 using DoDo.Terrain;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -29,9 +30,14 @@ public class TestPlayer : NetworkBehaviour
             gameObject.GetComponent<NetworkTransform>().Teleport(playerPosition, transform.rotation, transform.localScale);
         }
 
-        if (IsLocalPlayer && playerData.clientId == 0 /* && Utiliser PlayerData.IsHost */)
+        if (IsLocalPlayer)
         {
-            //TestTerrainGenerator.Instance.InitChunkOnServer(transform.position);
+            if (playerData.clientId == 0)
+            {
+                TestMatchManager.OnAllClientPlayerSpawned += TestMatchManager_OnAllClientPlayerSpawned;
+            }
+
+            TestMatchManager.Instance.NotifyServerPlayerHasSpawned();
         }
     }
 
@@ -42,7 +48,7 @@ public class TestPlayer : NetworkBehaviour
 
         if (Input.GetKeyUp(KeyCode.T))
         {
-            TestTerrainGenerator.Instance.InitChunkOnServer(transform.position);
+            TestTerrainGenerator.Instance.InitChunkOnServer();
         }
 
     }
@@ -66,5 +72,10 @@ public class TestPlayer : NetworkBehaviour
         {
             ;
         }
+    }
+
+    private void TestMatchManager_OnAllClientPlayerSpawned(object sender, EventArgs e)
+    {
+        TestTerrainGenerator.Instance.InitChunkOnServer();
     }
 }

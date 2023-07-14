@@ -9,9 +9,12 @@ public class MatchManager : NetworkBehaviour
     [SerializeField] private Transform playerPrefab;
     [SerializeField] private List<Transform> spawnPositionList;
 
+    public static event EventHandler OnAllClientPlayerSpawned;
+
     //NetworkVariable<bool> matchJustStarted;
 
-    private int playerSpawnedCount = 0;
+    NetworkVariable<int> playerSpawnedCount;
+    bool allClientsHasSpawned = false;
 
     public static MatchManager Instance { get; private set; }
 
@@ -41,6 +44,8 @@ public class MatchManager : NetworkBehaviour
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Transform playerTransform = Instantiate(playerPrefab);
+
+            // Instantiate player on Server and on each clients
             playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
         }
     }
@@ -67,6 +72,9 @@ public class MatchManager : NetworkBehaviour
 
         if (IsServer)
         {
+            playerSpawnedCount.Initialize(this);
+            playerSpawnedCount.Value = 0;
+
             NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
             NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
         }
@@ -78,32 +86,19 @@ public class MatchManager : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    void NotifyServerPlayerHasSpawnedServerRpc(ServerRpcParams serverRpcParams = default)
+    void NotifyServerPlayerHasSpawnedServerRpc()
     {
-        playerSpawnedCount++;
+        playerSpawnedCount.Value++;
 
-        bool allClientsHasSpawned = false;
-        if (NetworkManager.Singleton.ConnectedClientsIds.Count == playerSpawnedCount)
+        if (NetworkManager.Singleton.ConnectedClientsIds.Count == playerSpawnedCount.Value)
         {
             allClientsHasSpawned = true;
         }
 
         if (allClientsHasSpawned)
         {
-            TerrainGenerator.Instance.CreateTerrain(); // Should take a ScriptableObject as parameter (create by players during lobby)
+            OnAllClientPlayerSpawned?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    public void SpawnPlayerOnPosition(NetworkObjectReference target, int playerIndex)
-    {
-        NetworkObject targetObject = target;
-        //SpawnPlayerOnPositionServerRpc(targetObject, playerIndex);
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    void SpawnPlayerOnPositionServerRpc(NetworkObjectReference target, int playerIndex)
-    {
-        NetworkObject targetObject = target;
-        targetObject.GetComponent<Transform>().position = GetSpawnPosition(playerIndex);
-    }
 }
