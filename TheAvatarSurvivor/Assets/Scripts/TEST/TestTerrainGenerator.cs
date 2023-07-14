@@ -1,12 +1,22 @@
+using DoDo.Terrain;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
+using UnityEditor.AssetImporters;
 using UnityEngine;
 
 public class TestTerrainGenerator : NetworkBehaviour
 {
-    [SerializeField] Transform spherePrefab;
-    Transform sphereInst;
+    [SerializeField] Transform chunkPrefab;
+    [SerializeField] MeshSettings meshSettings;
+
+    Material mat;
+
+    MeshGenerator meshGenerator;
+    TextureGenerator textureGenerator;
+
+    Dictionary<Vector3, Chunk> chunkDictionary;
 
     public static TestTerrainGenerator Instance;
 
@@ -14,6 +24,17 @@ public class TestTerrainGenerator : NetworkBehaviour
     void Awake()
     {
         Instance = this;
+
+        meshGenerator = GetComponent<MeshGenerator>();
+        textureGenerator = GetComponent<TextureGenerator>();
+    }
+
+    private void Start()
+    {
+        chunkDictionary = new Dictionary<Vector3, Chunk>();
+
+        mat = textureGenerator.GetMaterial();
+        meshGenerator.Setup(meshSettings.numChunks, meshSettings.boundsSize, meshSettings.isoLevel, meshSettings.numPointsPerAxis);
     }
 
     // Update is called once per frame
@@ -23,22 +44,64 @@ public class TestTerrainGenerator : NetworkBehaviour
     }
 
 
-    public void SpawnSphereOnServer(Vector3 playerPos)
+    public void InitChunkOnServer(Vector3 playerPos)
     {
-        SpawnSphereServerRpc(playerPos);
+        InitChunkServerRpc(playerPos);
     }
 
     [ServerRpc (RequireOwnership = false)]
-    void SpawnSphereServerRpc(Vector3 playerPos)
+    void InitChunkServerRpc(Vector3 playerPos)
     {
-        Vector3 pos = new(Random.Range(-5f, 5f), Random.Range(-5f, 5f), Random.Range(-5f, 5f));
-        sphereInst = Instantiate(spherePrefab, playerPos + pos, Quaternion.identity);
-        sphereInst.GetComponent<NetworkObject>().Spawn(true);
+        for (int x = 0; x < meshSettings.numChunks.x; x++)
+        {
+            for (int y = 0; y < meshSettings.numChunks.y; y++)
+            {
+                for (int z = 0; z < meshSettings.numChunks.z; z++)
+                {
+                    // NETWORK SERVER INSTANTIATION
+                    Transform chunkInst = Instantiate(chunkPrefab);
+
+                    // NETWORK CLIENT INSTANTIATION
+                    NetworkObject networkChunkObj = chunkInst.GetComponent<NetworkObject>();
+                    networkChunkObj.Spawn(true);
+                    networkChunkObj.TrySetParent(gameObject.GetComponent<NetworkObject>());
+
+                    Vector3Int coord = new(x, y, z);
+                    InitChunkClientRpc(networkChunkObj, coord);
+                    chunkDictionary[coord] = chunkInst.gameObject.GetComponent<Chunk>();
+                }
+            }
+        }          
     }
 
     [ClientRpc]
-    void SpawnSphereClientRpc()
+    void InitChunkClientRpc(NetworkObjectReference target, Vector3Int coord)
     {
+        target.TryGet(out NetworkObject targetObject);
+
+        Transform targetInst = targetObject.GetComponent<Transform>();
+        if (targetInst != null)
+        {
+            // SETUP CHUNK
+            Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
+            targetInst.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
+            Chunk chunk = targetInst.gameObject.GetComponent<Chunk>();
+            chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, targetInst.gameObject, meshGenerator);
+            chunk.SetMaterial(mat);
+            chunkDictionary[chunk.coord] = chunk;
+        }
+        else
+        {
+            Debug.Log("ClientRpc - Can't access object of coord : " + coord);
+        }
 
     }
+
+    public static Vector3 CentreFromCoord(Vector3 coord, Vector3Int numChunks, float boundsSize)
+    {
+        // Centre entire map at origin
+        Vector3 totalBounds = (Vector3)numChunks * boundsSize;
+        return -totalBounds / 2 + coord * boundsSize + Vector3.one * boundsSize / 2;
+    }
+    public MeshSettings GetMeshSettings() => meshSettings;
 }

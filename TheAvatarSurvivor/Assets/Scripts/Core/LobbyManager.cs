@@ -65,14 +65,25 @@ public class LobbyManager : MonoBehaviour
 
     private void HandlePeriodicListLobbies()
     {
-        if (joinedLobby == null && AuthenticationService.Instance.IsSignedIn)
+        if (UnityServices.State == ServicesInitializationState.Uninitialized)
         {
-            listLobbiesTimer -= Time.deltaTime;
-            if (listLobbiesTimer <= 0f)
+            UnityServices.InitializeAsync();
+        }
+        else if (UnityServices.State == ServicesInitializationState.Initializing)
+        {
+            /* Nothing to do */
+        }
+        else
+        {
+            if (joinedLobby == null && AuthenticationService.Instance.IsSignedIn)
             {
-                float listLobbiesTimerMax = 3f;
-                listLobbiesTimer = listLobbiesTimerMax;
-                ListLobbies();
+                listLobbiesTimer -= Time.deltaTime;
+                if (listLobbiesTimer <= 0f)
+                {
+                    float listLobbiesTimerMax = 3f;
+                    listLobbiesTimer = listLobbiesTimerMax;
+                    ListLobbies();
+                }
             }
         }
     }

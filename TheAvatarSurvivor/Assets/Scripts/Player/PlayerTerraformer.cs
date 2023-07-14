@@ -56,6 +56,7 @@ namespace DoDo.Player
             if (Input.GetMouseButton(0))
             {
                 TerraformTerrain();
+                // Emettre un son de creusement
             }
             else
             {
@@ -66,6 +67,7 @@ namespace DoDo.Player
             if (Input.GetMouseButton(1))
             {
                 SupersedeTerrain();
+                // Emettre un son de creusement en inverse
             }
         }
 

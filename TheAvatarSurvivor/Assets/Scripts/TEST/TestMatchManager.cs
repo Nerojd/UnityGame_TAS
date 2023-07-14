@@ -30,12 +30,10 @@ public class TestMatchManager : NetworkBehaviour
         {
             Transform playerTransform = Instantiate(playerPrefab);
             
+            Debug.Log("ClientId spawned : " +  clientId);
+
             // Instantiate player on Server
             playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
-
-            // Teleport player to a different location
-            int index = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(clientId);
-            playerTransform.GetComponent<NetworkTransform>().Teleport(GetSpawnPosition(index), transform.rotation, transform.localScale);
         }
     }
 
@@ -55,7 +53,8 @@ public class TestMatchManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
+        // TESTER DE LE REACTIVER (2x plus de joueurs ?) 
+        //base.OnNetworkSpawn();
 
         //state.OnValueChanged += State_OnValueChanged;
         //isGamePaused.OnValueChanged += IsGamePaused_OnValueChanged;

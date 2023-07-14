@@ -90,10 +90,7 @@ public static class ComputeHelper
 	{
 		for (int i = 0; i < buffers.Length; i++)
 		{
-			if (buffers[i] != null)
-			{
-				buffers[i].Release();
-			}
+			buffers[i]?.Release();
 		}
 	}
 

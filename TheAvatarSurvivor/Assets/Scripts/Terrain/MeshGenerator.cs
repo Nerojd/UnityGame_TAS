@@ -269,5 +269,10 @@ namespace DoDo.Terrain
 
             TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower);
         }
+
+        private void OnDestroy()
+        {
+            ReleaseBuffers();
+        }
     }
 }

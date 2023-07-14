@@ -2093,6 +2093,8 @@ GameObject:
   - component: {fileID: 2105510526}
   - component: {fileID: 2105510530}
   - component: {fileID: 2105510531}
+  - component: {fileID: 2105510533}
+  - component: {fileID: 2105510532}
   m_Layer: 0
   m_Name: TerrainGenerator
   m_TagString: Untagged
@@ -2148,6 +2150,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spherePrefab: {fileID: 8228985486921120805, guid: eccbffbc531aa04419225023601b12e8, type: 3}
+  chunkPrefab: {fileID: 6585300116210381618, guid: a3c251814a0f082448079738dde437cb, type: 3}
+  meshSettings: {fileID: 11400000, guid: 9eaa5e55cc8544844a980b11cc5b8451, type: 2}
+--- !u!114 &2105510532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2105510525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3036fac980757d4f8f6a94d95ed453c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mat: {fileID: 2100000, guid: 7bc087c97fcae514d8e97c32fbfbf884, type: 2}
+  shaderParams: {x: 0, y: 35, z: 0, w: 0}
+--- !u!114 &2105510533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2105510525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fc8dac39d54bd45a8d3c6474ddfd26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  densityComputeShader: {fileID: 7200000, guid: 6f17253ba515b49de95452c1dcbdc45c, type: 3}
+  noiseSettings: {fileID: 11400000, guid: f805e7b500ad9d74890a9ddc9047f2df, type: 2}
+  meshComputeShader: {fileID: 7200000, guid: e6675a5747764487687871eed95a316b, type: 3}
+  terraformComputeShader: {fileID: 7200000, guid: 96dc481c486f8434bb4b207af26b87cf, type: 3}
 --- !u!1 &2130531808
 GameObject:
   m_ObjectHideFlags: 0

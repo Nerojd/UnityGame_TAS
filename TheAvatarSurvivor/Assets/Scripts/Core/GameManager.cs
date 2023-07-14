@@ -90,6 +90,7 @@ public class GameManager : NetworkBehaviour
 
     private bool IsColorAvailable(int colorId)
     {
+        bool lStatus = true;
         // TODO : Network list into list
         NetworkList<PlayerData> tempList = MultiplayerManager.Instance.GetPlayerDataNetworkList();
         foreach (PlayerData playerData in tempList)
@@ -97,10 +98,11 @@ public class GameManager : NetworkBehaviour
             if (playerData.colorId == colorId)
             {
                 // Already in use
-                return false;
+                lStatus = false;
+                break;
             }
         }
-        return true;
+        return lStatus;
     }
 
     public int GetFirstUnusedColorId()

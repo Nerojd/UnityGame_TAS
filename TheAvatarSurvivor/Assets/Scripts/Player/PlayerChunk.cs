@@ -20,7 +20,8 @@ namespace DoDo.Player
         /*******************************************/
         private void Start()
         {
-            meshSettings = TerrainGenerator.Instance.GetMeshSettings();
+            //meshSettings = TerrainGenerator.Instance.GetMeshSettings();
+            meshSettings = TestTerrainGenerator.Instance.GetMeshSettings();
             chunksVisibleInViewDst = Mathf.RoundToInt(meshSettings.visibleDstThreshold);
         }
 
@@ -33,7 +34,7 @@ namespace DoDo.Player
             if ((viewerOldPosition - viewerPosition).sqrMagnitude > sqrViewerMoveThresholdForChunkUpdate)
             {
                 viewerOldPosition = viewerPosition;
-                StartCoroutine(UpdateNearbyChunks(viewerPosition));
+                //StartCoroutine(UpdateNearbyChunks(viewerPosition));
             }
         }
 

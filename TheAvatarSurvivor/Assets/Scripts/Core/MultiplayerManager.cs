@@ -1,4 +1,6 @@
+using DoDo.Terrain;
 using System;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using UnityEngine;
@@ -62,6 +64,7 @@ public class MultiplayerManager : NetworkBehaviour
         {
             clientId = clientId,
             colorId = 0,
+            isHost = IsHost,
         };
         playerDataNetworkList.Add(playerData);
         SetPlayerNameServerRpc(UserAccountManager.Instance.GetPlayerName());
@@ -191,5 +194,10 @@ public class MultiplayerManager : NetworkBehaviour
     {
         NetworkManager.Singleton.DisconnectClient(clientId);
         NetworkManager_Server_OnClientDisconnectCallback(clientId);
+    }
+
+    public override void OnDestroy()
+    {
+        playerDataNetworkList.Dispose();
     }
 }

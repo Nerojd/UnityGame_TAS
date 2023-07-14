@@ -17,7 +17,22 @@ public class TestPlayer : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        playerNetworkObject = gameObject.GetComponent<NetworkObject>();
+        playerData = MultiplayerManager.Instance.GetPlayerDataFromClientId(OwnerClientId);
+        playerIndex = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(OwnerClientId);
+
+        if (IsOwner)
+        {
+            // Teleport player to a different spawn location
+            // To be call by the owner to avoid non-authoritative call
+            Vector3 playerPosition = TestMatchManager.Instance.GetSpawnPosition(MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(playerData.clientId));
+            gameObject.GetComponent<NetworkTransform>().Teleport(playerPosition, transform.rotation, transform.localScale);
+        }
+
+        if (IsLocalPlayer && playerData.clientId == 0 /* && Utiliser PlayerData.IsHost */)
+        {
+            //TestTerrainGenerator.Instance.InitChunkOnServer(transform.position);
+        }
     }
 
     // Update is called once per frame
@@ -25,10 +40,11 @@ public class TestPlayer : NetworkBehaviour
     {
         if (!IsLocalPlayer) return;
 
-        if (Input.GetKeyDown(KeyCode.T))
+        if (Input.GetKeyUp(KeyCode.T))
         {
-            TestTerrainGenerator.Instance.SpawnSphereOnServer(transform.position);
+            TestTerrainGenerator.Instance.InitChunkOnServer(transform.position);
         }
+
     }
 
     public override void OnNetworkSpawn()
@@ -38,12 +54,6 @@ public class TestPlayer : NetworkBehaviour
             LocalInstance = this;
         }
 
-        playerNetworkObject = GetComponent<NetworkObject>();
-        playerData = MultiplayerManager.Instance.GetPlayerDataFromClientId(OwnerClientId);
-        playerIndex = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(OwnerClientId);
-
-        Debug.Log("owernerclientID : " + NetworkManager.LocalClient.PlayerObject.OwnerClientId);
-        
         if (IsServer)
         {
             NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;

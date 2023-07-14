@@ -40,8 +40,8 @@ namespace DoDo.Player
         {
             if (IsLocalPlayer)
             {
-                TerrainGenerator.Instance.ReinitChunkHolder();
-                MatchManager.Instance.NotifyServerPlayerHasSpawned();
+                //TerrainGenerator.Instance.ReinitChunkHolder();
+                //MatchManager.Instance.NotifyServerPlayerHasSpawned();
             }
         }
 
@@ -83,8 +83,8 @@ namespace DoDo.Player
             playerVisual.SetPlayerColor(GameManager.Instance.GetPlayerColor(playerData.colorId));
 
             //MatchManager.Instance.SpawnPlayerOnPosition(playerNetworkObject, playerIndex);
-            TerrainGenerator.Instance.OnTerrainCreationStarted += TerrainGenerator_OnTerrainCreationStarted;
-            TerrainGenerator.Instance.OnTerrainCreationFinished += TerrainGenerator_OnTerrainCreationFinished;
+            //TerrainGenerator.Instance.OnTerrainCreationStarted += TerrainGenerator_OnTerrainCreationStarted;
+            //TerrainGenerator.Instance.OnTerrainCreationFinished += TerrainGenerator_OnTerrainCreationFinished;
 
             //OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
 
