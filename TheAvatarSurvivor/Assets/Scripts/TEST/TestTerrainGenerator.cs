@@ -1,4 +1,5 @@
 using DoDo.Terrain;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -10,6 +11,9 @@ public class TestTerrainGenerator : NetworkBehaviour
 {
     [SerializeField] Transform chunkPrefab;
     [SerializeField] MeshSettings meshSettings;
+
+    public event EventHandler OnTerrainCreationStarted;
+    public event EventHandler OnTerrainCreationFinished;
 
     Material mat;
 
@@ -37,21 +41,17 @@ public class TestTerrainGenerator : NetworkBehaviour
         meshGenerator.Setup(meshSettings.numChunks, meshSettings.boundsSize, meshSettings.isoLevel, meshSettings.numPointsPerAxis);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
 
     public void InitChunkOnServer()
     {
         InitChunkServerRpc();
     }
 
-    [ServerRpc (RequireOwnership = false)]
+    [ServerRpc(RequireOwnership = false)]
     void InitChunkServerRpc()
     {
+        OnTerrainCreationStarted?.Invoke(this, EventArgs.Empty);
+
         for (int x = 0; x < meshSettings.numChunks.x; x++)
         {
             for (int y = 0; y < meshSettings.numChunks.y; y++)
@@ -71,7 +71,9 @@ public class TestTerrainGenerator : NetworkBehaviour
                     chunkDictionary[coord] = chunkInst.gameObject.GetComponent<Chunk>();
                 }
             }
-        }          
+        }
+
+        OnTerrainCreationFinished?.Invoke(this, EventArgs.Empty);
     }
 
     [ClientRpc]
@@ -88,7 +90,7 @@ public class TestTerrainGenerator : NetworkBehaviour
             Chunk chunk = targetInst.gameObject.GetComponent<Chunk>();
             chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, targetInst.gameObject, meshGenerator);
             chunk.SetMaterial(mat);
-            
+
             // Create Mesh
             meshGenerator.GenerateDensity(chunk);
             meshGenerator.UpdateChunkMesh(chunk);
@@ -100,7 +102,6 @@ public class TestTerrainGenerator : NetworkBehaviour
         {
             Debug.Log("ClientRpc - Can't access object of coord : " + coord);
         }
-
     }
 
     public static Vector3 CentreFromCoord(Vector3 coord, Vector3Int numChunks, float boundsSize)

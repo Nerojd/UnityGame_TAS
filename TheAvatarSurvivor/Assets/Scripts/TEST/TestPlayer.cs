@@ -1,3 +1,4 @@
+using DoDo.Player;
 using DoDo.Terrain;
 using System;
 using System.Collections;
@@ -21,6 +22,9 @@ public class TestPlayer : NetworkBehaviour
         playerNetworkObject = gameObject.GetComponent<NetworkObject>();
         playerData = MultiplayerManager.Instance.GetPlayerDataFromClientId(OwnerClientId);
         playerIndex = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(OwnerClientId);
+
+        TestTerrainGenerator.Instance.OnTerrainCreationStarted += TerrainGenerator_OnTerrainCreationStarted;
+        TestTerrainGenerator.Instance.OnTerrainCreationFinished += TerrainGenerator_OnTerrainCreationFinished;
 
         if (IsOwner)
         {
@@ -77,5 +81,18 @@ public class TestPlayer : NetworkBehaviour
     private void TestMatchManager_OnAllClientPlayerSpawned(object sender, EventArgs e)
     {
         TestTerrainGenerator.Instance.InitChunkOnServer();
+    }
+
+    void TerrainGenerator_OnTerrainCreationStarted(object sender, System.EventArgs e)
+    {
+        //gameObject.GetComponent<Rigidbody>().useGravity = false;
+        //gameObject.GetComponent<Rigidbody>().isKinematic = true;
+    }
+    void TerrainGenerator_OnTerrainCreationFinished(object sender, System.EventArgs e)
+    {
+        //gameObject.GetComponent<Rigidbody>().useGravity = true;
+        //gameObject.GetComponent<Rigidbody>().isKinematic = false;
+
+        // Get or Set anything after Terrain is created
     }
 }

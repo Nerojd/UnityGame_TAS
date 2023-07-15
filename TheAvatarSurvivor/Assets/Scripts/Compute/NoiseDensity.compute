@@ -1,7 +1,7 @@
 ﻿#pragma kernel Density
 #include "/Includes/Noise.compute"
 
-static const int numThreads = 2;
+static const int numThreads = 4;
 
 struct PointData {
     float3 position;

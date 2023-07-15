@@ -17,8 +17,7 @@ namespace DoDo.Terrain
     {
         [Header("Terrain Settings")]
         [SerializeField] MeshSettings meshSettings;
-        [SerializeField] GameObject chunkPrefab;
-        [SerializeField] TextMeshProUGUI textId;
+        [SerializeField] Transform chunkPrefab;
 
         public event EventHandler OnTerrainCreationStarted;
         public event EventHandler OnTerrainCreationFinished;
@@ -28,7 +27,7 @@ namespace DoDo.Terrain
         MeshGenerator meshGenerator;
         TextureGenerator textureGenerator;
 
-        Dictionary<Vector3, Chunk> chunkDictionary = new Dictionary<Vector3, Chunk>();
+        Dictionary<Vector3, Chunk> chunkDictionary;
 
         public static TerrainGenerator Instance;
 
@@ -54,32 +53,16 @@ namespace DoDo.Terrain
 
         void Start()
         {
+            chunkDictionary = new Dictionary<Vector3, Chunk>();
+
             mat = textureGenerator.GetMaterial();
-
             meshGenerator.Setup(meshSettings.numChunks, meshSettings.boundsSize, meshSettings.isoLevel, meshSettings.numPointsPerAxis);
-
-            //ReinitChunkHolder();
-            if (IsHost)
-            {
-                //InitChunksServerRpc();
-
-                //CreateChunkMesh();
-            }
-        }
-
-        public override void OnNetworkSpawn()
-        {
-            //mat = textureGenerator.GetMaterial();
-
-            //meshGenerator.Setup(meshSettings.numChunks, meshSettings.boundsSize, meshSettings.isoLevel, meshSettings.numPointsPerAxis);
-
         }
 
         public void EditorUpdate()
         {
             textureGenerator = GetComponent<TextureGenerator>();
             mat = textureGenerator.GetMaterial();
-
 
             meshGenerator = GetComponent<MeshGenerator>();
             meshGenerator.Setup(meshSettings.numChunks, meshSettings.boundsSize, meshSettings.isoLevel, meshSettings.numPointsPerAxis);
@@ -115,7 +98,7 @@ namespace DoDo.Terrain
         /// <summary>
         /// Create and Initialize all chunks
         /// </summary>
-        void InitChunks_WorkingFunction()
+        void InitChunksSinglePlayer()
         {
             ReinitChunkHolder();
 
@@ -157,208 +140,106 @@ namespace DoDo.Terrain
             }
         }
 
-        /// <summary>
-        /// Create and Initialize all chunks on server
-        /// </summary>
-        //[ServerRpc(RequireOwnership = false)]
-        //void InitChunksServerRpc()
-        //{
-        //    for (int x = 0; x < meshSettings.numChunks.x; x++)
-        //    {
-        //        for (int y = 0; y < meshSettings.numChunks.y; y++)
-        //        {
-        //            for (int z = 0; z < meshSettings.numChunks.z; z++)
-        //            {
-        //                // GAMEOBJECT
-        //                Vector3Int coord = new(x, y, z);
-        //                GameObject chunkObj = new($"Chunk ({coord.x}, {coord.y}, {coord.z})");
-        //                Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
-
-        //                // LAYER
-        //                chunkObj.layer = LayerMask.NameToLayer(meshSettings.terrainLayer);
-
-        //                // TYPE
-        //                ObjectType objType = chunkObj.AddComponent<ObjectType>();
-        //                objType.SetObjectType(EObjectType.Terrain);
-
-        //                // CHUNK
-        //                Chunk chunk = chunkObj.AddComponent<Chunk>();
-        //                chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, chunkObj, meshGenerator);
-        //                chunk.SetMaterial(mat);
-        //                meshGenerator.GenerateDensity(chunk);
-
-        //                // NETWORK
-        //                NetworkObject networkObj = chunkObj.AddComponent<NetworkObject>();
-        //                networkObj.Spawn(true);
-        //                networkObj.TrySetParent(transform);
-
-        //                InitChunksClientRpc(networkObj);
-
-        //                chunkDictionary[coord] = chunk;
-
-        //                CreateChunkMeshClientRpc(networkObj);
-        //            }
-        //        }
-        //    }
-        //    OnTerrainCreationFinished?.Invoke(this, EventArgs.Empty);
-        //}
-
-        [ClientRpc]
-        void InitChunksClientRpc(NetworkObjectReference target)
+        [ServerRpc(RequireOwnership = false)]
+        void InitChunkServerRpc()
         {
-            NetworkObject targetObject = target;
+            OnTerrainCreationStarted?.Invoke(this, EventArgs.Empty);
 
-            Chunk chunk = targetObject.GetComponent<Chunk>();
-            if (chunk != null)
-            {
-                chunkDictionary[chunk.coord] = chunk;
-                //CreateChunkMesh(chunk);
-            }
-        }
-
-        /// <summary>
-        /// Create mesh for each chunks, depending on the generated noise density
-        /// </summary>
-        //void CreateChunkMesh()
-        //{
-        //    foreach (Chunk chunk in chunkDictionary.Values)
-        //    {
-        //        // Generate density on the HOST
-        //        PointData[] points = meshGenerator.GenerateDensity(chunk);
-
-        //        // Create mesh on all clients
-        //        //var targetObject = chunk.GetComponent<NetworkObject>();
-        //        GenerateMeshServerRpc(chunk.gameObject, points);
-        //    }
-        //}
-
-        //[ServerRpc(RequireOwnership = false)]
-        //void GenerateMeshServerRpc(NetworkObjectReference target, PointData[] points)
-        //{
-        //    NetworkObject targetObject = target;
-        //    GenerateMeshClientRpc(targetObject, points);
-        //}
-
-        //[ClientRpc]
-        //void GenerateMeshClientRpc(NetworkObjectReference target, PointData[] points)
-        //{
-        //    NetworkObject targetObject = target;
-
-        //    Chunk chunk = targetObject.GetComponent<Chunk>();
-        //    if (chunk == null) return;
-
-        //    chunk.SetPointsData(points, points.Length);
-        //    meshGenerator.UpdateChunkMesh(chunk);
-        //}
-
-        void CreateChunkMesh(Chunk chunk)
-        {
-            meshGenerator.GenerateDensity(chunk);
-            meshGenerator.UpdateChunkMesh(chunk);
-        }
-
-        void InitChunks()
-        {
             for (int x = 0; x < meshSettings.numChunks.x; x++)
             {
                 for (int y = 0; y < meshSettings.numChunks.y; y++)
                 {
                     for (int z = 0; z < meshSettings.numChunks.z; z++)
                     {
+                        // Instantiation on SERVER
+                        Transform chunkInst = Instantiate(chunkPrefab);
+
+                        // Instantiation on CLIENTS
+                        NetworkObject networkChunkObj = chunkInst.GetComponent<NetworkObject>();
+                        networkChunkObj.Spawn(true);
+                        networkChunkObj.TrySetParent(gameObject.GetComponent<NetworkObject>());
+
                         Vector3Int coord = new(x, y, z);
-                        Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
-
-                        // NETWORK SERVER INSTANTIATION
-                        GameObject chunkObj = Instantiate(chunkPrefab);
-
-                        // SETUP
-                        chunkObj.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
-                        Chunk chunk = chunkObj.GetComponent<Chunk>();
-                        chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, chunkObj, meshGenerator);
-                        chunk.SetMaterial(mat);
-
-                        // NETWORK CLIENT INSTANTIATION
-                        NetworkObject networkObj = chunkObj.GetComponent<NetworkObject>();
-                        NetworkObject.SpawnWithObservers = true;
-                        networkObj.Spawn();
-                        networkObj.TrySetParent(gameObject.GetComponent<NetworkObject>());
-                        networkObj.RemoveOwnership();
-
-                        InitChunksClientRpc(networkObj);
-                        chunkDictionary[coord] = chunk;
+                        InitChunkClientRpc(networkChunkObj, coord);
+                        chunkDictionary[coord] = chunkInst.gameObject.GetComponent<Chunk>();
                     }
                 }
-            }
-
-            foreach (Chunk chunk in chunkDictionary.Values)
-            {
-                NetworkObject netObject = chunk.GetComponent<NetworkObject>();
-
-                foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
-                {
-                    if (!netObject.IsNetworkVisibleTo(clientId))
-                    {
-                        netObject.NetworkShow(clientId);
-                        netObject.CheckObjectVisibility = (clientId) => { return true; };
-                    }
-                }
-
-            }
-
-            if (IsClient)
-            {
-                textId.text = "ISCLIENT - ";
-            }
-            else
-            {
-                textId.text = "ISSERVER - ";
-            }
-            /* TEST */
-            foreach (Chunk chunk in chunkDictionary.Values)
-            {
-                NetworkObject netObject = chunk.GetComponent<NetworkObject>();
-                TestClientRpc(netObject);
             }
 
             OnTerrainCreationFinished?.Invoke(this, EventArgs.Empty);
         }
 
-        /* TEST */
         [ClientRpc]
-        void TestClientRpc(NetworkObjectReference target)
+        void InitChunkClientRpc(NetworkObjectReference target, Vector3Int coord)
         {
-            NetworkObject targetObject = target;
+            target.TryGet(out NetworkObject targetObject);
 
-            Chunk chunk = targetObject.GetComponent<Chunk>();
-            if (chunk != null)
+            Transform targetInst = targetObject.GetComponent<Transform>();
+            if (targetInst != null)
             {
-                //chunk.transform.parent = transform;
-                bool isVisible = targetObject.IsNetworkVisibleTo(MultiplayerManager.Instance.GetPlayerData().clientId);
-                textId.text += isVisible.ToString();
-                // Instancie une sphère
-                GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                // Positionne la sphère
-                sphere.transform.position = chunk.center;
-                // Applique une échelle à la sphère si nécessaire
-                sphere.transform.localScale = new Vector3(1f, 1f, 1f);
-                sphere.SetActive(true);
+                // Setup Chunk
+                Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
+                targetInst.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
+                Chunk chunk = targetInst.gameObject.GetComponent<Chunk>();
+                chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, targetInst.gameObject, meshGenerator);
+                chunk.SetMaterial(mat);
+
+                // Create Mesh
+                meshGenerator.GenerateDensity(chunk);
+                meshGenerator.UpdateChunkMesh(chunk);
+
+                chunkDictionary[chunk.coord] = chunk;
+
             }
             else
             {
-                textId.text += "ChunkNotFound";
+                Debug.Log("ClientRpc - Can't access object of coord : " + coord);
             }
         }
+
+
+        /// <summary>
+        /// Terraforming
+        /// </summary>
+        [ServerRpc(RequireOwnership = false)]
+        void TerraformChunkServerRpc(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        {
+            TerraformChunkClientRpc(chunkCoord, brushCenter, weight, brushRadius, brushPower);
+        }
+
+        [ClientRpc]
+        void TerraformChunkClientRpc(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        {
+            Chunk chunk = chunkDictionary[chunkCoord];
+            meshGenerator.TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower);
+            //meshGenerator.UpdateChunkMesh(chunk);
+        }
+
+
+        // HOW TO INIT CHUNK VISIBLE using Server network visibility
+        //
+        //foreach (Chunk chunk in chunkDictionary.Values)
+        //{
+        //    NetworkObject netObject = chunk.GetComponent<NetworkObject>();
+
+        //    foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        //    {
+        //        if (!netObject.IsNetworkVisibleTo(clientId))
+        //        {
+        //            netObject.NetworkShow(clientId);
+        //            netObject.CheckObjectVisibility = (clientId) => { return true; };
+        //        }
+        //    }
+
+        //}
 
         /******************************************/
         /*             Public Methods             */
         /******************************************/
-        public void CreateTerrain()
+        public void InitChunkOnServer()
         {
-            OnTerrainCreationStarted?.Invoke(this, EventArgs.Empty);
-
-            InitChunks();
+            InitChunkServerRpc();
         }
-
 
         public void Terraform(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
         {
@@ -366,17 +247,22 @@ namespace DoDo.Terrain
             meshGenerator.TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower);
         }
 
-        public void TerraformFromServer(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        public void TerraformOnServer(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
         {
-            Chunk chunk = chunkDictionary[chunkCoord];
-            var targetObject = chunk.GetComponent<NetworkObject>();
-            meshGenerator.TerraformChunkMeshServerRpc(targetObject, brushCenter, weight, brushRadius, brushPower);
+            TerraformChunkServerRpc(chunkCoord, brushCenter, weight, brushRadius, brushPower);
+
+            //Chunk chunk = chunkDictionary[chunkCoord];
+            //var targetObject = chunk.GetComponent<NetworkObject>();
+            //meshGenerator.TerraformChunkMeshServerRpc(targetObject, brushCenter, weight, brushRadius, brushPower);
         }
 
         // NEW METHOD to terraform
         // 
         // Terraform() called TerraformChunkMeshServerRpc(...); to create to displacement of points and then Clients calculate the mesh with the new points
-
+        // 
+        // Clients get all chunk from server and server notify clients that a chunk has been modified. 
+        // If chunk vivible then the client update with marching cube algo
+        // Else the chunk is just marked has "terraformed"
 
 
         // NEW METHOD to create physics object

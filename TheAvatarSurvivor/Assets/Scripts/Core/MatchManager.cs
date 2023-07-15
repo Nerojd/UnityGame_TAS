@@ -13,7 +13,7 @@ public class MatchManager : NetworkBehaviour
 
     //NetworkVariable<bool> matchJustStarted;
 
-    NetworkVariable<int> playerSpawnedCount;
+    int playerSpawnedCount = 0;
     bool allClientsHasSpawned = false;
 
     public static MatchManager Instance { get; private set; }
@@ -53,6 +53,7 @@ public class MatchManager : NetworkBehaviour
     private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
     {
         //autoTestGamePausedState = true;
+        playerSpawnedCount--;
     }
 
     public Vector3 GetSpawnPosition(int index)
@@ -62,19 +63,16 @@ public class MatchManager : NetworkBehaviour
     /******************************************/
     /*             Public Methods             */
     /******************************************/
-
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
+        // TESTER DE LE REACTIVER (2x plus de joueurs ?) 
+        //base.OnNetworkSpawn();
 
         //state.OnValueChanged += State_OnValueChanged;
         //isGamePaused.OnValueChanged += IsGamePaused_OnValueChanged;
 
         if (IsServer)
         {
-            playerSpawnedCount.Initialize(this);
-            playerSpawnedCount.Value = 0;
-
             NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
             NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
         }
@@ -88,9 +86,9 @@ public class MatchManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     void NotifyServerPlayerHasSpawnedServerRpc()
     {
-        playerSpawnedCount.Value++;
+        playerSpawnedCount++;
 
-        if (NetworkManager.Singleton.ConnectedClientsIds.Count == playerSpawnedCount.Value)
+        if (NetworkManager.Singleton.ConnectedClientsIds.Count == playerSpawnedCount)
         {
             allClientsHasSpawned = true;
         }
@@ -99,6 +97,10 @@ public class MatchManager : NetworkBehaviour
         {
             OnAllClientPlayerSpawned?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    public override void OnDestroy()
+    {
     }
 
 }

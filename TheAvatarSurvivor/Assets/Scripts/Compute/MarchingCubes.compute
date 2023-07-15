@@ -1,7 +1,7 @@
 ﻿#pragma kernel March
 #include "/Includes/MarchTables.compute"
 
-static const int numThreads = 2;
+static const int numThreads = 4;
 
 struct Triangle {
     float3 vertexC;

@@ -2,6 +2,7 @@ using DoDo.Core;
 using DoDo.Terrain;
 using System;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 
 namespace DoDo.Player
@@ -38,10 +39,29 @@ namespace DoDo.Player
         /*******************************************/
         private void Start()
         {
+            playerNetworkObject = gameObject.GetComponent<NetworkObject>();
+            playerData = MultiplayerManager.Instance.GetPlayerDataFromClientId(OwnerClientId);
+            playerIndex = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(OwnerClientId);
+
+            TerrainGenerator.Instance.OnTerrainCreationStarted += TerrainGenerator_OnTerrainCreationStarted;
+            TerrainGenerator.Instance.OnTerrainCreationFinished += TerrainGenerator_OnTerrainCreationFinished;
+
+            if (IsOwner)
+            {
+                // Teleport player to a different spawn location
+                // To be call by the owner to avoid non-authoritative call
+                Vector3 playerPosition = MatchManager.Instance.GetSpawnPosition(MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(playerData.clientId));
+                gameObject.GetComponent<NetworkTransform>().Teleport(playerPosition, transform.rotation, transform.localScale);
+            }
+
             if (IsLocalPlayer)
             {
-                //TerrainGenerator.Instance.ReinitChunkHolder();
-                //MatchManager.Instance.NotifyServerPlayerHasSpawned();
+                if (playerData.clientId == 0)
+                {
+                    MatchManager.OnAllClientPlayerSpawned += MatchManager_OnAllClientPlayerSpawned;
+                }
+
+                MatchManager.Instance.NotifyServerPlayerHasSpawned();
             }
         }
 
@@ -54,6 +74,11 @@ namespace DoDo.Player
             {
                 ;
             }
+        }
+
+        private void MatchManager_OnAllClientPlayerSpawned(object sender, EventArgs e)
+        {
+            TerrainGenerator.Instance.InitChunkOnServer();
         }
 
         void TerrainGenerator_OnTerrainCreationStarted(object sender, System.EventArgs e)
@@ -76,17 +101,6 @@ namespace DoDo.Player
             {
                 LocalInstance = this;
             }
-
-            playerNetworkObject = GetComponent<NetworkObject>();
-            playerData = MultiplayerManager.Instance.GetPlayerDataFromClientId(OwnerClientId);
-            playerIndex = MultiplayerManager.Instance.GetPlayerDataIndexFromClientId(OwnerClientId);
-            playerVisual.SetPlayerColor(GameManager.Instance.GetPlayerColor(playerData.colorId));
-
-            //MatchManager.Instance.SpawnPlayerOnPosition(playerNetworkObject, playerIndex);
-            //TerrainGenerator.Instance.OnTerrainCreationStarted += TerrainGenerator_OnTerrainCreationStarted;
-            //TerrainGenerator.Instance.OnTerrainCreationFinished += TerrainGenerator_OnTerrainCreationFinished;
-
-            //OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
 
             if (IsServer)
             {

@@ -155,10 +155,10 @@ public class GameManager : NetworkBehaviour
         if (allClientsReady)
         {
             LobbyManager.Instance.DeleteLobby();
-            //Loader.LoadNetwork(Loader.Scene.GameScene);
+            Loader.LoadNetwork(Loader.Scene.GameScene);
 
             // Test Scene
-            Loader.LoadNetwork(Loader.Scene.TestScene);
+            //Loader.LoadNetwork(Loader.Scene.TestScene);
         }
     }
 

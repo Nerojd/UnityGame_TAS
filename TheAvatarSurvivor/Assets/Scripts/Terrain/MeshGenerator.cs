@@ -160,58 +160,6 @@ namespace DoDo.Terrain
             chunk.AssignMesh(vertices, triangles);
         }
 
-        [ClientRpc]
-        public void UpdateChunkMeshClientRpc(NetworkObjectReference target)
-        {
-            Chunk chunk = null;
-            if (target.TryGet(out NetworkObject targetObject))
-            {
-                chunk = targetObject.GetComponent<Chunk>();
-            }
-            else
-            {
-                // Target not found on server
-            }
-
-            if (chunk == null) return;
-
-            int numVoxelsPerAxis = numPointsPerAxis - 1;
-
-            int marchKernel = 0;
-            triangleBuffer.SetCounterValue(0);
-            pointsDensityBuffer.SetData(chunk.GetPointsData());
-
-            meshComputeShader.SetBuffer(marchKernel, "triangles", triangleBuffer);
-            meshComputeShader.SetBuffer(marchKernel, "points", pointsDensityBuffer);
-            meshComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-            meshComputeShader.SetFloat("isoLevel", isoLevel);
-
-            ComputeHelper.Dispatch(meshComputeShader, numVoxelsPerAxis, numVoxelsPerAxis, numVoxelsPerAxis, marchKernel);
-
-            // Get number of triangles in the triangle buffer
-            ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
-            int[] triCountArray = new int[1];
-            triCountBuffer.GetData(triCountArray);
-            int numTris = triCountArray[0];
-            // Get triangle data from shader
-            TriangleData[] trianglesDataArray = new TriangleData[numTris];
-            triangleBuffer.GetData(trianglesDataArray, 0, 0, numTris);
-
-            Vector3[] vertices = new Vector3[numTris * 3];
-            int[] triangles = new int[numTris * 3];
-
-            for (int i = 0; i < numTris; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    triangles[i * 3 + j] = i * 3 + j;
-                    vertices[i * 3 + j] = trianglesDataArray[i][j];
-                }
-            }
-
-            chunk.AssignMesh(vertices, triangles);
-        }
-
 
         public void TerraformChunkMesh(Chunk chunk, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
         {
@@ -244,30 +192,6 @@ namespace DoDo.Terrain
             UpdateChunkMesh(chunk);
 
             chunk.hasBeenTerraformed = true;
-        }
-
-        [ServerRpc(RequireOwnership = false)]
-        public void TerraformChunkMeshServerRpc(NetworkObjectReference target, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
-        {
-            TerraformChunkMeshClientRpc(target, brushCenter, weight, brushRadius, brushPower);
-        }
-
-        [ClientRpc]
-        public void TerraformChunkMeshClientRpc(NetworkObjectReference target, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
-        {
-            Chunk chunk = null;
-            if (target.TryGet(out NetworkObject targetObject))
-            {
-                chunk = targetObject.GetComponent<Chunk>();
-            }
-            else
-            {
-                // Target not found on server
-            }
-
-            if (chunk == null) return;
-
-            TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower);
         }
 
         private void OnDestroy()

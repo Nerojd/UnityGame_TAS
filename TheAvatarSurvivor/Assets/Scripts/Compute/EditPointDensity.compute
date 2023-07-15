@@ -1,6 +1,6 @@
 #pragma kernel CSMain
 
-static const int numThreads = 2;
+static const int numThreads = 4;
 
 struct PointData {
 	float3 position;

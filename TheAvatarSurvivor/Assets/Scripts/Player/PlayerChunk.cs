@@ -20,8 +20,8 @@ namespace DoDo.Player
         /*******************************************/
         private void Start()
         {
-            //meshSettings = TerrainGenerator.Instance.GetMeshSettings();
-            meshSettings = TestTerrainGenerator.Instance.GetMeshSettings();
+            meshSettings = TerrainGenerator.Instance.GetMeshSettings();
+            //meshSettings = TestTerrainGenerator.Instance.GetMeshSettings();
             chunksVisibleInViewDst = Mathf.RoundToInt(meshSettings.visibleDstThreshold);
         }
 
@@ -141,7 +141,7 @@ namespace DoDo.Player
                     if (!MathUtility.SphereIntersectsBox(brushCenter, brushRadius, TerrainGenerator.CentreFromCoord(chunkCoord, meshSettings.numChunks, meshSettings.boundsSize), Vector3.one * meshSettings.boundsSize)) 
                         continue;
 
-                    TerrainGenerator.Instance.TerraformFromServer(chunkCoord, brushCenter, weight, brushRadius, brushPower);
+                    TerrainGenerator.Instance.TerraformOnServer(chunkCoord, brushCenter, weight, brushRadius, brushPower);
                 }
             }
         }
