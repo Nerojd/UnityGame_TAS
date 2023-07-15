@@ -51,7 +51,6 @@ namespace DoDo.Player
                 DebugUtility.DrawSphere(hit.point, 1.5f, Color.red);
             }
 
-
             // Add terrain
             if (Input.GetMouseButton(0))
             {
@@ -96,8 +95,7 @@ namespace DoDo.Player
                 Ray ray = cam.ViewportPointToRay(viewportCenter);
 
                 // Calculer l'intersection entre le rayon et le plan
-                float distance;
-                if (terraformPlane.Raycast(ray, out distance))
+                if (terraformPlane.Raycast(ray, out float distance))
                 {
                     // Calculer le point d'intersection
                     Vector3 terraformPoint = ray.origin + ray.direction * distance;

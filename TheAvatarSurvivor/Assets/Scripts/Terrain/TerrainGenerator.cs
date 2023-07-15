@@ -152,7 +152,7 @@ namespace DoDo.Terrain
                     for (int z = 0; z < meshSettings.numChunks.z; z++)
                     {
                         // Instantiation on SERVER
-                        Transform chunkInst = Instantiate(chunkPrefab);
+                        Transform chunkInst = Instantiate(chunkPrefab, Vector3.zero, Quaternion.identity);
 
                         // Instantiation on CLIENTS
                         NetworkObject networkChunkObj = chunkInst.GetComponent<NetworkObject>();
