@@ -1,4 +1,6 @@
-﻿using Unity.Netcode;
+﻿using Unity.Collections;
+using Unity.Mathematics;
+using Unity.Netcode;
 using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
 
@@ -23,10 +25,13 @@ namespace DoDo.Terrain
         float isoLevel;
         int numPointsPerAxis;
 
+        NativeArray<float3> positionNativeArray;
+        NativeArray<float> densityNativeArray, newDensityNativeArray;
+
         // Buffers
         ComputeBuffer triangleBuffer;
-        ComputeBuffer pointsDensityBuffer;
-        ComputeBuffer pointsDataBuffer;
+        ComputeBuffer positionPointsBuffer;
+        ComputeBuffer densityPointsBuffer;
         ComputeBuffer triCountBuffer;
 
         int numPoints;
@@ -43,6 +48,10 @@ namespace DoDo.Terrain
             this.numPointsPerAxis = numPointsPerAxis;
 
             CreateBuffers();
+
+            positionNativeArray = new NativeArray<float3>(numPoints, Allocator.Persistent);
+            densityNativeArray = new NativeArray<float>(numPoints, Allocator.Persistent);
+            newDensityNativeArray = new NativeArray<float>(numPoints, Allocator.Persistent);
         }
 
         /* Size all buffers depending on the size of the number of points on each axes */
@@ -56,13 +65,13 @@ namespace DoDo.Terrain
 
             triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
             triangleBuffer = new ComputeBuffer(maxTriangleCount, ComputeHelper.GetStride<TriangleData>(), ComputeBufferType.Append);
-            pointsDensityBuffer = new ComputeBuffer(numPoints, ComputeHelper.GetStride<PointData>());
-            pointsDataBuffer = new ComputeBuffer(numPoints, ComputeHelper.GetStride<PointData>());
+            positionPointsBuffer = new ComputeBuffer(numPoints, ComputeHelper.GetStride<float3>(), ComputeBufferType.Structured);
+            densityPointsBuffer = new ComputeBuffer(numPoints, ComputeHelper.GetStride<float>(), ComputeBufferType.Structured);
         }
 
         public void ReleaseBuffers()
         {
-            ComputeHelper.Release(triangleBuffer, triCountBuffer, pointsDensityBuffer, pointsDataBuffer);
+            ComputeHelper.Release(triangleBuffer, triCountBuffer, positionPointsBuffer, densityPointsBuffer);
         }
 
         /* Generate the density of each point using perlin noise */
@@ -71,13 +80,14 @@ namespace DoDo.Terrain
             int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
 
             float spacing = boundsSize / (numPointsPerAxis - 1);
-            Vector3 center = chunk.center;
+            Vector3 center = chunk.m_center;
 
             Vector3 worldBounds = new Vector3(numChunks.x, numChunks.y, numChunks.z) * boundsSize;
 
             // Points buffer is populated inside shader with pos (xyz) + density (w).
             // Set paramaters
-            densityComputeShader.SetBuffer(0, "points", pointsDensityBuffer);
+            densityComputeShader.SetBuffer(0, "positionPoints", positionPointsBuffer);
+            densityComputeShader.SetBuffer(0, "densityPoints", densityPointsBuffer);
             densityComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
             densityComputeShader.SetFloat("boundsSize", boundsSize);
             densityComputeShader.SetVector("centre", new Vector4(center.x, center.y, center.z));
@@ -113,64 +123,77 @@ namespace DoDo.Terrain
 
             offsetsBuffer.Release();
 
-            // Get and stock all points of each chunks for Marching Cubes Algorithm and Terraforming
-            PointData[] points = new PointData[numPoints];
-            pointsDensityBuffer.GetData(points, 0, 0, numPoints);
-            chunk.SetPointsData(points, numPoints);
+            // Get positions and stock them for Marching Cubes Algorithm and Terraforming
+            float3[] posPoints = new float3[numPoints];
+            positionPointsBuffer.GetData(posPoints, 0, 0, numPoints);
 
-            return points;
+            // Get positions and stock them for Marching Cubes Algorithm and Terraforming
+            float[] denPoints = new float[numPoints];
+            densityPointsBuffer.GetData(denPoints, 0, 0, numPoints);
+            //chunk.SetPointsData(points);
+
+            PointData[] pointDatas = new PointData[numPoints];
+            for (int i = 0; i < numPoints; i++)
+            {
+                pointDatas[i].position = posPoints[i];
+                pointDatas[i].density = denPoints[i];
+            }
+
+            return pointDatas;
         }
 
         public void UpdateChunkMesh(Chunk chunk)
         {
-            int numVoxelsPerAxis = numPointsPerAxis - 1;
+            //int numVoxelsPerAxis = numPointsPerAxis - 1;
 
-            int marchKernel = 0;
-            triangleBuffer.SetCounterValue(0);
-            pointsDensityBuffer.SetData(chunk.GetPointsData());
+            //int marchKernel = 0;
+            //triangleBuffer.SetCounterValue(0);
+            //positionPointsBuffer.SetData(positionNativeArray);
+            //densityPointsBuffer.SetData(newDensityNativeArray);
 
-            meshComputeShader.SetBuffer(marchKernel, "triangles", triangleBuffer);
-            meshComputeShader.SetBuffer(marchKernel, "points", pointsDensityBuffer);
-            meshComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-            meshComputeShader.SetFloat("isoLevel", isoLevel);
+            //meshComputeShader.SetBuffer(marchKernel, "triangles", triangleBuffer);
+            //meshComputeShader.SetBuffer(marchKernel, "positionPoints", positionPointsBuffer);
+            //meshComputeShader.SetBuffer(marchKernel, "densityPoints", densityPointsBuffer);
+            //meshComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
+            //meshComputeShader.SetFloat("isoLevel", isoLevel);
 
-            ComputeHelper.Dispatch(meshComputeShader, numVoxelsPerAxis, numVoxelsPerAxis, numVoxelsPerAxis, marchKernel);
+            //ComputeHelper.Dispatch(meshComputeShader, numVoxelsPerAxis, numVoxelsPerAxis, numVoxelsPerAxis, marchKernel);
 
-            // Get number of triangles in the triangle buffer
-            ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
-            int[] triCountArray = new int[1];
-            triCountBuffer.GetData(triCountArray);
-            int numTris = triCountArray[0];
-            // Get triangle data from shader
-            TriangleData[] trianglesDataArray = new TriangleData[numTris];
-            triangleBuffer.GetData(trianglesDataArray, 0, 0, numTris);
+            //// Get number of triangles in the triangle buffer
+            //ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
+            //int[] triCountArray = new int[1];
+            //triCountBuffer.GetData(triCountArray);
+            //int numTris = triCountArray[0];
+            //// Get triangle data from shader
+            //TriangleData[] trianglesDataArray = new TriangleData[numTris];
+            //triangleBuffer.GetData(trianglesDataArray, 0, 0, numTris);
 
-            Vector3[] vertices = new Vector3[numTris * 3];
-            int[] triangles = new int[numTris * 3];
+            //Vector3[] vertices = new Vector3[numTris * 3];
+            //int[] triangles = new int[numTris * 3];
 
-            for (int i = 0; i < numTris; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    triangles[i * 3 + j] = i * 3 + j;
-                    vertices[i * 3 + j] = trianglesDataArray[i][j];
-                }
-            }
+            //for (int i = 0; i < numTris; i++)
+            //{
+            //    for (int j = 0; j < 3; j++)
+            //    {
+            //        triangles[i * 3 + j] = i * 3 + j;
+            //        vertices[i * 3 + j] = trianglesDataArray[i][j];
+            //    }
+            //}
 
-            chunk.AssignMesh(vertices, triangles);
+            //chunk.AssignNewMesh(vertices, triangles);
         }
 
 
-        public void TerraformChunkMesh(Chunk chunk, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        public void TerraformChunkMesh(Chunk chunk, Vector3 brushCenter, int weight, float brushRadius, float brushPower, bool isAddingMatter)
         {
             int numVoxelsPerAxis = numPointsPerAxis - 1;
             float pointSpacing = boundsSize / numVoxelsPerAxis;
 
             // Terraform
-            Vector3 center = chunk.center;
-            pointsDataBuffer.SetData(chunk.GetPointsData());
+            Vector3 center = chunk.m_center;
+            densityPointsBuffer.SetData(newDensityNativeArray);
 
-            terraformComputeShader.SetBuffer(0, "points", pointsDataBuffer);
+            terraformComputeShader.SetBuffer(0, "densityPoints", densityPointsBuffer);
             terraformComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
             terraformComputeShader.SetFloat("boundsSize", boundsSize);
             terraformComputeShader.SetVector("centre", new Vector4(center.x, center.y, center.z));
@@ -185,13 +208,12 @@ namespace DoDo.Terrain
             ComputeHelper.Dispatch(terraformComputeShader, numVoxelsPerAxis, numVoxelsPerAxis, numVoxelsPerAxis);
 
             int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-            PointData[] pointsData = new PointData[numPoints];
-            pointsDataBuffer.GetData(pointsData, 0, 0, numPoints);
-            chunk.SetPointsData(pointsData, numPoints);
+            float[] pointsData = new float[numPoints];
+            densityPointsBuffer.GetData(pointsData, 0, 0, numPoints);
+            //chunk.SetPointsData(pointsData);
 
-            UpdateChunkMesh(chunk);
+            //UpdateChunkMesh(chunk);
 
-            chunk.hasBeenTerraformed = true;
         }
 
         private void OnDestroy()

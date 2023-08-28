@@ -52,7 +52,7 @@ public class TestPlayer : NetworkBehaviour
 
         if (Input.GetKeyUp(KeyCode.T))
         {
-            TestTerrainGenerator.Instance.InitChunkOnServer();
+            TestTerrainGenerator.Instance.ChangeMeshOnServer(transform.position);
         }
 
     }
@@ -80,7 +80,7 @@ public class TestPlayer : NetworkBehaviour
 
     private void TestMatchManager_OnAllClientPlayerSpawned(object sender, EventArgs e)
     {
-        TestTerrainGenerator.Instance.InitChunkOnServer();
+        //TestTerrainGenerator.Instance.InitChunkOnServer();
     }
 
     void TerrainGenerator_OnTerrainCreationStarted(object sender, System.EventArgs e)

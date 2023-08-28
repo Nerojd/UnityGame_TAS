@@ -1,7 +1,6 @@
 using System;
 using Unity.Collections;
 using Unity.Netcode;
-using Unity.VisualScripting;
 
 public struct PlayerData : IEquatable<PlayerData>, INetworkSerializable
 {
@@ -21,7 +20,7 @@ public struct PlayerData : IEquatable<PlayerData>, INetworkSerializable
             isHost == other.isHost;
     }
 
-    public bool NotEqual(PlayerData other)
+    public bool NotEquals(PlayerData other)
     {
         return
             clientId != other.clientId ||

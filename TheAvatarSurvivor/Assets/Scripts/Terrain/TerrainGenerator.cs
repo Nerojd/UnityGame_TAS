@@ -17,15 +17,17 @@ namespace DoDo.Terrain
     {
         [Header("Terrain Settings")]
         [SerializeField] MeshSettings meshSettings;
+        [SerializeField] NoiseSettings noiseSettings;
+        [SerializeField] ComputeShaderSettings computeShaderSettings;
+
         [SerializeField] Transform chunkPrefab;
+        [SerializeField] MeshGenerator meshGenerator;
+        [SerializeField] TextureGenerator textureGenerator;
 
         public event EventHandler OnTerrainCreationStarted;
         public event EventHandler OnTerrainCreationFinished;
 
         Material mat;
-
-        MeshGenerator meshGenerator;
-        TextureGenerator textureGenerator;
 
         Dictionary<Vector3, Chunk> chunkDictionary;
 
@@ -46,9 +48,6 @@ namespace DoDo.Terrain
             //    Debug.LogError("More than one TerrainGenerator instance in our scene");
             //    return;
             //}
-
-            meshGenerator = GetComponent<MeshGenerator>();
-            textureGenerator = GetComponent<TextureGenerator>();
         }
 
         void Start()
@@ -61,10 +60,7 @@ namespace DoDo.Terrain
 
         public void EditorUpdate()
         {
-            textureGenerator = GetComponent<TextureGenerator>();
             mat = textureGenerator.GetMaterial();
-
-            meshGenerator = GetComponent<MeshGenerator>();
             meshGenerator.Setup(meshSettings.numChunks, meshSettings.boundsSize, meshSettings.isoLevel, meshSettings.numPointsPerAxis);
 
             //EditorInitChunks();
@@ -125,7 +121,7 @@ namespace DoDo.Terrain
 
                         // CHUNK
                         Chunk chunk = chunkObj.AddComponent<Chunk>();
-                        chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, chunkObj, meshGenerator);
+                        chunk.Setup(coord, center, chunkObj, meshSettings, noiseSettings, computeShaderSettings);
                         chunk.SetMaterial(mat);
 
                         // PARENT
@@ -161,7 +157,15 @@ namespace DoDo.Terrain
 
                         Vector3Int coord = new(x, y, z);
                         InitChunkClientRpc(networkChunkObj, coord);
+
                         chunkDictionary[coord] = chunkInst.gameObject.GetComponent<Chunk>();
+
+                        Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
+                        chunkInst.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
+                        Chunk chunk = chunkInst.gameObject.GetComponent<Chunk>();
+                        chunk.Setup(coord, center, chunkInst.gameObject, meshSettings, noiseSettings, computeShaderSettings);
+                        chunk.SetMaterial(mat);
+                        chunk.GenerateDensity();
                     }
                 }
             }
@@ -181,19 +185,16 @@ namespace DoDo.Terrain
                 Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
                 targetInst.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
                 Chunk chunk = targetInst.gameObject.GetComponent<Chunk>();
-                chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, targetInst.gameObject, meshGenerator);
+                chunk.Setup(coord, center, targetInst.gameObject, meshSettings, noiseSettings, computeShaderSettings);
                 chunk.SetMaterial(mat);
+                chunk.GenerateDensity();
+                //meshGenerator.UpdateChunkMesh(chunk);
 
-                // Create Mesh
-                meshGenerator.GenerateDensity(chunk);
-                meshGenerator.UpdateChunkMesh(chunk);
-
-                chunkDictionary[chunk.coord] = chunk;
-
+                chunkDictionary[chunk.m_coord] = chunk;
             }
             else
             {
-                Debug.Log("ClientRpc - Can't access object of coord : " + coord);
+                Debug.Log("ClientRpc - Cannot access object of coord : " + coord);
             }
         }
 
@@ -202,16 +203,16 @@ namespace DoDo.Terrain
         /// Terraforming
         /// </summary>
         [ServerRpc(RequireOwnership = false)]
-        void TerraformChunkServerRpc(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        void TerraformChunkServerRpc(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower, bool isAddingMatter)
         {
-            TerraformChunkClientRpc(chunkCoord, brushCenter, weight, brushRadius, brushPower);
+            TerraformChunkClientRpc(chunkCoord, brushCenter, weight, brushRadius, brushPower, isAddingMatter);
         }
 
         [ClientRpc]
-        void TerraformChunkClientRpc(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        void TerraformChunkClientRpc(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower, bool isAddingMatter)
         {
             Chunk chunk = chunkDictionary[chunkCoord];
-            meshGenerator.TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower);
+            meshGenerator.TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower, isAddingMatter);
             //meshGenerator.UpdateChunkMesh(chunk);
         }
 
@@ -241,15 +242,15 @@ namespace DoDo.Terrain
             InitChunkServerRpc();
         }
 
-        public void Terraform(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        public void Terraform(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower, bool isAddingMatter)
         {
             Chunk chunk = chunkDictionary[chunkCoord];
-            meshGenerator.TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower);
+            meshGenerator.TerraformChunkMesh(chunk, brushCenter, weight, brushRadius, brushPower, isAddingMatter);
         }
 
-        public void TerraformOnServer(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower)
+        public void TerraformOnServer(Vector3 chunkCoord, Vector3 brushCenter, int weight, float brushRadius, float brushPower, bool isAddingMatter)
         {
-            TerraformChunkServerRpc(chunkCoord, brushCenter, weight, brushRadius, brushPower);
+            TerraformChunkServerRpc(chunkCoord, brushCenter, weight, brushRadius, brushPower, isAddingMatter);
 
             //Chunk chunk = chunkDictionary[chunkCoord];
             //var targetObject = chunk.GetComponent<NetworkObject>();

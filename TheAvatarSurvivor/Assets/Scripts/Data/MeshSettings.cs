@@ -6,9 +6,9 @@ public class MeshSettings : ScriptableObject
     public bool autoUpdate = true;
 
     public string terrainLayer = "Terraform";
-    [HideInInspector] public Vector3Int numChunks = new(5, 5, 5);
+    public Vector3Int numChunks = new(5, 5, 5);
     [HideInInspector] public float visibleDstThreshold = 35;
-    [HideInInspector] public float boundsSize = 10;
+    public float boundsSize = 10;
     [HideInInspector] public float isoLevel = 7;
     [Range(2, 100)] public int numPointsPerAxis = 30;
 

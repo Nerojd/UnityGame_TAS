@@ -46,11 +46,6 @@ namespace DoDo.Player
         // Update is called once per frame
         void Update()
         {
-            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, terraformDistanceFar) && hit.collider.GetComponent<Chunk>() != null)
-            {
-                DebugUtility.DrawSphere(hit.point, 1.5f, Color.red);
-            }
-
             // Add terrain
             if (Input.GetMouseButton(0))
             {

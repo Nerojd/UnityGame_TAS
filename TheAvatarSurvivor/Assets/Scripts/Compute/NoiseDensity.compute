@@ -1,15 +1,11 @@
 ﻿#pragma kernel Density
 #include "/Includes/Noise.compute"
 
-static const int numThreads = 4;
-
-struct PointData {
-    float3 position;
-    float density;
-};
+static const int numThreads = 8;
 
 // Density settings
-RWStructuredBuffer<PointData> points;
+RWStructuredBuffer<float3> positionPoints;
+RWStructuredBuffer<float> densityPoints;
 int numPointsPerAxis;
 float boundsSize;
 float3 centre;
@@ -49,7 +45,7 @@ void Density (int3 id : SV_DispatchThreadID)
     float amplitude = 1;
     float weight = 1;
     for (int j =0; j < octaves; j ++) {
-        float n = snoise((pos+offsetNoise) * frequency + offsets[j] + offset);
+        float n = snoise((pos + offsetNoise) * frequency + offsets[j] + offset);
         float v = 1-abs(n);
         v = v*v;
         v *= weight;
@@ -59,21 +55,22 @@ void Density (int3 id : SV_DispatchThreadID)
         frequency *= lacunarity;
     }
     
-    float finalVal = -(pos.y + floorOffset) + noise * noiseWeight + (pos.y%params.x) * params.y;
-
-    float maxIsoLevel = isoLevel * 2;
-    if (finalVal > maxIsoLevel)
+    float result = -(pos.y + floorOffset) + noise * noiseWeight + (pos.y % params.x) * params.y;
+    
+    float isoLevelLimit = isoLevel * 2;
+    if (result > isoLevelLimit)
     {
-        finalVal = maxIsoLevel;
+        result = isoLevelLimit;
     }
-
-    float minIsoLevel = -isoLevel * 2;
-    if (finalVal < minIsoLevel)
+    
+    if (result < -isoLevelLimit)
     {
-        finalVal = minIsoLevel;
+        result = -isoLevelLimit;
     }
-
-    int index = indexFromCoord(id.x,id.y,id.z);
-    points[index].position = pos;
-    points[index].density = finalVal;
+    
+    int index = indexFromCoord(id.x, id.y, id.z);
+    // Assign POSITION
+    positionPoints[index] = pos;
+    // Assign DENSITY
+    densityPoints[index] = result;
 }

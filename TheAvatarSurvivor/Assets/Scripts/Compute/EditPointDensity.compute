@@ -1,13 +1,8 @@
 #pragma kernel CSMain
 
-static const int numThreads = 4;
+static const int numThreads = 8;
 
-struct PointData {
-	float3 position;
-	float density;
-};
-
-RWStructuredBuffer<PointData> points;
+RWStructuredBuffer<float> points;
 int numPointsPerAxis;
 float boundsSize;
 float3 centre;
@@ -45,7 +40,7 @@ void CSMain (int3 id : SV_DispatchThreadID)
 		float brushWeight = 1 - smoothstep(brushRadius * 0.5, brushRadius, dst);
 
 		int index = indexFromCoord(id.x, id.y, id.z);
-		float finalVal = points[index].density;
+		float finalVal = points[index];
 		finalVal += weight * deltaTime * brushWeight * brushPower;
 
 		float maxIsoLevel = isoLevel * 2;
@@ -59,6 +54,6 @@ void CSMain (int3 id : SV_DispatchThreadID)
 		{
 			finalVal = minIsoLevel;
 		}
-		points[index].density = finalVal;
+		points[index] = finalVal;
 	}
 }

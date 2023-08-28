@@ -413,6 +413,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ded96bdbc49a944fa1063f95bfd24b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  materialValid: {fileID: 2100000, guid: a5c399c0b325dbc408e5e312d31e6795, type: 2}
+  materialInvalid: {fileID: 2100000, guid: 1a88581e0d49cb74dbc149bcc002dcb0, type: 2}
 --- !u!114 &7472153038959560072
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -426,14 +428,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terraformRadius: 1.4
-  terraformPower: 15
-  terraformPowerNear: 4
-  terraformPowerFar: 50
+  terraformPower: 5
+  terraformPowerNear: 5
+  terraformPowerFar: 25
   terraformDistanceFar: 20
   supersedeRadius: 1.2
   supersedePower: 1.25
-  supersedePowerNear: 30
-  supersedePowerFar: 14
+  supersedePowerNear: 25
+  supersedePowerFar: 10
   supersedeDistanceFar: 8
   cam: {fileID: 435173585760138687}
 --- !u!114 &6528073035512197091

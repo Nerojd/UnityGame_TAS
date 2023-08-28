@@ -1,6 +1,8 @@
 using UnityEngine;
 using Unity.Netcode;
 using System;
+using System.Drawing;
+using UnityEditor.PackageManager;
 
 public struct PointData : IEquatable<PointData>, INetworkSerializable
 {
@@ -9,25 +11,28 @@ public struct PointData : IEquatable<PointData>, INetworkSerializable
 
     public bool Equals(PointData other)
     {
-        return
-            position == other.position &&
-            density == other.density;
+        return (position == other.position) && (density == other.density);
+    }
+
+    public bool NotEquals(PointData other)
+    {
+        return (position != other.position) || (density != other.density);
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
-        //serializer.SerializeValue(ref position);
-        //serializer.SerializeValue(ref density);
+        serializer.SerializeValue(ref position);
+        serializer.SerializeValue(ref density);
 
-        if (serializer.IsWriter)
-        {
-            serializer.GetFastBufferWriter().WriteValueSafe(position);
-            serializer.GetFastBufferWriter().WriteValueSafe(density);
-        }
-        else
-        {
-            serializer.GetFastBufferReader().ReadValueSafe(out position);
-            serializer.GetFastBufferReader().ReadValueSafe(out density);
-        }
+        //if (serializer.IsWriter)
+        //{
+        //    serializer.GetFastBufferWriter().WriteValueSafe(position);
+        //    serializer.GetFastBufferWriter().WriteValueSafe(density);
+        //}
+        //else
+        //{
+        //    serializer.GetFastBufferReader().ReadValueSafe(out position);
+        //    serializer.GetFastBufferReader().ReadValueSafe(out density);
+        //}
     }
 }

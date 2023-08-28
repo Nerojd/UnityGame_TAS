@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f965fee36cab3ab4488f2111cb942acc, type: 3}
+  m_Name: Dflt_ComputeShaderSettings
+  m_EditorClassIdentifier: 
+  autoUpdate: 1
+  densityComputeShader: {fileID: 7200000, guid: 6f17253ba515b49de95452c1dcbdc45c, type: 3}
+  meshComputeShader: {fileID: 7200000, guid: e6675a5747764487687871eed95a316b, type: 3}
+  terraformComputeShader: {fileID: 7200000, guid: 96dc481c486f8434bb4b207af26b87cf, type: 3}

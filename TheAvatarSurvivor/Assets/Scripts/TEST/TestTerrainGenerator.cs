@@ -9,13 +9,18 @@ using UnityEngine;
 
 public class TestTerrainGenerator : NetworkBehaviour
 {
-    [SerializeField] Transform chunkPrefab;
+    [SerializeField] Transform spherePrefab;
+    [SerializeField] Mesh cubeMesh;
+    [SerializeField] Mesh sphereMesh;
+    bool isSphereMesh = false;
+
     [SerializeField] MeshSettings meshSettings;
 
     public event EventHandler OnTerrainCreationStarted;
     public event EventHandler OnTerrainCreationFinished;
 
     Material mat;
+    Transform sphereInst = null;
 
     MeshGenerator meshGenerator;
     TextureGenerator textureGenerator;
@@ -42,65 +47,57 @@ public class TestTerrainGenerator : NetworkBehaviour
     }
 
 
-    public void InitChunkOnServer()
+    public void ChangeMeshOnServer(Vector3 pos)
     {
-        InitChunkServerRpc();
+        ChangeMeshServerRpc(pos);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    void InitChunkServerRpc()
+    void ChangeMeshServerRpc(Vector3 pos)
     {
-        OnTerrainCreationStarted?.Invoke(this, EventArgs.Empty);
-
-        for (int x = 0; x < meshSettings.numChunks.x; x++)
+        if (sphereInst == null)
         {
-            for (int y = 0; y < meshSettings.numChunks.y; y++)
+            // Instantiation on SERVER
+            sphereInst = Instantiate(spherePrefab, pos + new Vector3(5, 0, 5), Quaternion.identity);
+
+            // Instantiation on CLIENTS
+            NetworkObject networkChunkObj = sphereInst.GetComponent<NetworkObject>();
+            networkChunkObj.Spawn(true);
+            networkChunkObj.TrySetParent(gameObject.GetComponent<NetworkObject>());
+        }
+        else
+        {
+            NetworkObject networkChunkObj = sphereInst.GetComponent<NetworkObject>();
+            MeshFilter meshFilter = networkChunkObj.gameObject.GetComponent<MeshFilter>();
+            if (isSphereMesh)
             {
-                for (int z = 0; z < meshSettings.numChunks.z; z++)
-                {
-                    // Instantiation on SERVER
-                    Transform chunkInst = Instantiate(chunkPrefab);
-
-                    // Instantiation on CLIENTS
-                    NetworkObject networkChunkObj = chunkInst.GetComponent<NetworkObject>();
-                    networkChunkObj.Spawn(true);
-                    networkChunkObj.TrySetParent(gameObject.GetComponent<NetworkObject>());
-
-                    Vector3Int coord = new(x, y, z);
-                    InitChunkClientRpc(networkChunkObj, coord);
-                    chunkDictionary[coord] = chunkInst.gameObject.GetComponent<Chunk>();
-                }
+                meshFilter.mesh = cubeMesh;
+                meshFilter.sharedMesh = cubeMesh;
+                isSphereMesh = false;
+            }
+            else
+            {
+                meshFilter.mesh = sphereMesh;
+                meshFilter.sharedMesh = sphereMesh;
+                isSphereMesh = true;
             }
         }
-
-        OnTerrainCreationFinished?.Invoke(this, EventArgs.Empty);
+        //ChangeMeshClientRpc(networkChunkObj);
     }
 
     [ClientRpc]
-    void InitChunkClientRpc(NetworkObjectReference target, Vector3Int coord)
+    void ChangeMeshClientRpc(NetworkObjectReference target)
     {
         target.TryGet(out NetworkObject targetObject);
 
         Transform targetInst = targetObject.GetComponent<Transform>();
         if (targetInst != null)
         {
-            // Setup Chunk
-            Vector3 center = CentreFromCoord(coord, meshSettings.numChunks, meshSettings.boundsSize);
-            targetInst.name = $"Chunk ({coord.x}, {coord.y}, {coord.z})";
-            Chunk chunk = targetInst.gameObject.GetComponent<Chunk>();
-            chunk.Setup(coord, center, meshSettings.boundsSize, meshSettings.numChunks, meshSettings.visibleDstThreshold, targetInst.gameObject, meshGenerator);
-            chunk.SetMaterial(mat);
 
-            // Create Mesh
-            meshGenerator.GenerateDensity(chunk);
-            meshGenerator.UpdateChunkMesh(chunk);
-
-            chunkDictionary[chunk.coord] = chunk;
 
         }
         else
         {
-            Debug.Log("ClientRpc - Can't access object of coord : " + coord);
         }
     }
 

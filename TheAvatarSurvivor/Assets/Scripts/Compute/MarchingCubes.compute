@@ -1,7 +1,7 @@
 ﻿#pragma kernel March
 #include "/Includes/MarchTables.compute"
 
-static const int numThreads = 4;
+static const int numThreads = 8;
 
 struct Triangle {
     float3 vertexC;
@@ -10,7 +10,8 @@ struct Triangle {
 };
 
 AppendStructuredBuffer<Triangle> triangles;
-RWStructuredBuffer<float4> points;
+RWStructuredBuffer<float3> positionPoints;
+RWStructuredBuffer<float> densityPoints;
 
 int numPointsPerAxis;
 float isoLevel;
@@ -36,14 +37,22 @@ void March (int3 id : SV_DispatchThreadID)
 
     // 8 corners of the current cube
     float4 cubeCornerCoords[8];
-    cubeCornerCoords[0] = points[indexFromCoord(id + int3(0, 0, 0))];
-    cubeCornerCoords[1] = points[indexFromCoord(id + int3(1, 0, 0))];
-    cubeCornerCoords[2] = points[indexFromCoord(id + int3(1, 0, 1))];
-    cubeCornerCoords[3] = points[indexFromCoord(id + int3(0, 0, 1))];
-    cubeCornerCoords[4] = points[indexFromCoord(id + int3(0, 1, 0))];
-    cubeCornerCoords[5] = points[indexFromCoord(id + int3(1, 1, 0))];
-    cubeCornerCoords[6] = points[indexFromCoord(id + int3(1, 1, 1))];
-    cubeCornerCoords[7] = points[indexFromCoord(id + int3(0, 1, 1))];
+    cubeCornerCoords[0].xyz = positionPoints[indexFromCoord(id + int3(0, 0, 0))];
+    cubeCornerCoords[0].w   = densityPoints [indexFromCoord(id + int3(0, 0, 0))];
+    cubeCornerCoords[1].xyz = positionPoints[indexFromCoord(id + int3(1, 0, 0))];
+    cubeCornerCoords[1].w   = densityPoints [indexFromCoord(id + int3(1, 0, 0))];
+    cubeCornerCoords[2].xyz = positionPoints[indexFromCoord(id + int3(1, 0, 1))];
+    cubeCornerCoords[2].w   = densityPoints [indexFromCoord(id + int3(1, 0, 1))];
+    cubeCornerCoords[3].xyz = positionPoints[indexFromCoord(id + int3(0, 0, 1))];
+    cubeCornerCoords[3].w   = densityPoints [indexFromCoord(id + int3(0, 0, 1))];
+    cubeCornerCoords[4].xyz = positionPoints[indexFromCoord(id + int3(0, 1, 0))];
+    cubeCornerCoords[4].w   = densityPoints [indexFromCoord(id + int3(0, 1, 0))];
+    cubeCornerCoords[5].xyz = positionPoints[indexFromCoord(id + int3(1, 1, 0))];
+    cubeCornerCoords[5].w   = densityPoints [indexFromCoord(id + int3(1, 1, 0))];
+    cubeCornerCoords[6].xyz = positionPoints[indexFromCoord(id + int3(1, 1, 1))];
+    cubeCornerCoords[6].w   = densityPoints [indexFromCoord(id + int3(1, 1, 1))];
+    cubeCornerCoords[7].xyz = positionPoints[indexFromCoord(id + int3(0, 1, 1))];
+    cubeCornerCoords[7].w   = densityPoints [indexFromCoord(id + int3(0, 1, 1))];
 
     // Calculate unique index for each cube configuration.
     // There are 256 possible values (cube has 8 corners, so 2^8 possibilites).
@@ -63,6 +72,7 @@ void March (int3 id : SV_DispatchThreadID)
     int edgeIndices[] = triangulation[cubeConfiguration];
 
     // Create triangles for the current cube configuration
+    //TODO : [unroll] (Verifier si les calcules ne sont pas genant)
     for (i = 0; i < 16; i += 3) {
         // If edge index is -1, then no further vertices exist in this configuration.
         if (edgeIndices[i] == -1) { break; }

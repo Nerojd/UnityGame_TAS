@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Mathematics;
+using Unity.VisualScripting;
 
 namespace DoDo.Player
 {
@@ -10,6 +12,9 @@ namespace DoDo.Player
     {
         const float viewerMoveThresholdForChunkUpdate = 3f;
         const float sqrViewerMoveThresholdForChunkUpdate = viewerMoveThresholdForChunkUpdate * viewerMoveThresholdForChunkUpdate;
+
+        [SerializeField] Material materialValid;
+        [SerializeField] Material materialInvalid;
 
         Vector3 viewerOldPosition;
         int chunksVisibleInViewDst;
@@ -118,12 +123,15 @@ namespace DoDo.Player
         {
             Vector3 offsetVector = new( Mathf.CeilToInt(chunksVisibleInViewDst),
                                         Mathf.CeilToInt(chunksVisibleInViewDst),
-                                        Mathf.CeilToInt(chunksVisibleInViewDst));
+                                        Mathf.CeilToInt(chunksVisibleInViewDst) );
+
             foreach (Vector3 chunkCoord in GetUpdatableChunks(viewerPosition, offsetVector))
             {
                 if (TerrainGenerator.Instance.IsChunkCoordInDictionary(chunkCoord))
                 {
-                    TerrainGenerator.Instance.GetChunk(chunkCoord).UpdateVisibleChunks(viewerPosition);
+                    //Chunk chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
+                    //chunk.UpdateVisibleChunks(viewerPosition);
+                    //chunk.CheckTerraforming();
                 }
             }
             yield return null;
@@ -131,17 +139,26 @@ namespace DoDo.Player
 
         public void Terraform(Vector3 brushCenter, int weight, float brushRadius, float brushPower)
         {
-            Vector3 offsetVector = new( Mathf.CeilToInt(meshSettings.numChunks.x / meshSettings.boundsSize),
-                                        Mathf.CeilToInt(meshSettings.numChunks.y / meshSettings.boundsSize),
-                                        Mathf.CeilToInt(meshSettings.numChunks.z / meshSettings.boundsSize));
-            foreach (Vector3 chunkCoord in GetUpdatableChunks(brushCenter, offsetVector))
+            Vector3 offsetVector = (Vector3)meshSettings.numChunks / meshSettings.boundsSize;
+            Vector3 impactRatio = new( Mathf.CeilToInt(brushRadius / offsetVector.x), 
+                                       Mathf.CeilToInt(brushRadius / offsetVector.y),
+                                       Mathf.CeilToInt(brushRadius / offsetVector.z) );
+
+            foreach (Vector3 chunkCoord in GetUpdatableChunks(brushCenter, impactRatio))
             {
                 if (TerrainGenerator.Instance.IsChunkCoordInDictionary(chunkCoord))
                 {
+                    Chunk chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
+                    chunk.SetMaterial(materialInvalid);
+
                     if (!MathUtility.SphereIntersectsBox(brushCenter, brushRadius, TerrainGenerator.CentreFromCoord(chunkCoord, meshSettings.numChunks, meshSettings.boundsSize), Vector3.one * meshSettings.boundsSize)) 
                         continue;
 
-                    TerrainGenerator.Instance.TerraformOnServer(chunkCoord, brushCenter, weight, brushRadius, brushPower);
+                    chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
+                    //chunk.TerraformChunkMesh(brushCenter, weight, brushRadius, brushPower);
+                    chunk.UpdateDensityPoint(brushCenter, weight, brushRadius, brushPower);
+                    //chunk.SetMaterial(materialValid);
+                    //TerrainGenerator.Instance.TerraformOnServer(chunkCoord, brushCenter, weight, brushRadius, brushPower, isAddingMatter);
                 }
             }
         }
