@@ -2608,7 +2608,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ece442fd80293d41a99d07c4c33222c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  meshSettings: {fileID: 11400000, guid: a290368dea471b3499d68d90031ad68e, type: 2}
+  meshSettings: {fileID: 11400000, guid: 9eaa5e55cc8544844a980b11cc5b8451, type: 2}
   noiseSettings: {fileID: 11400000, guid: f805e7b500ad9d74890a9ddc9047f2df, type: 2}
   computeShaderSettings: {fileID: 11400000, guid: 33db0d35e4ba37f4d8e158006908b456, type: 2}
   chunkPrefab: {fileID: 6585300116210381618, guid: a3c251814a0f082448079738dde437cb, type: 3}

@@ -1,14 +1,9 @@
-﻿using AmplifyShaderEditor;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEngine.EventSystems.EventTrigger;
 
 namespace DoDo.Terrain
 {
@@ -57,17 +52,14 @@ namespace DoDo.Terrain
         ComputeBuffer m_positionPointsBuffer;
         ComputeBuffer m_densityPointsBuffer;
         ComputeBuffer m_triCountBuffer;
-        ComputeBuffer m_pointsBuffer; // TEST
 
+        bool isJobScheduled = false;
         TerraformChunkJob m_terraformChunkJob;
         JobHandle m_terraformDensityJobHandle;
         NativeArray<float3> m_positionNativeArray;
         NativeArray<float> m_densityNativeArray, m_newDensityNativeArray;
-        bool isJobScheduled = false;
         NativeArray<TerraformingData> m_terraformingDataNativeArray;
         List<TerraformingData> m_terraformingDataList = new List<TerraformingData>();
-
-        //NativeArray<JobHandle> m_jobHandlesList;
 
         /**************/
         /* Components */
@@ -117,30 +109,8 @@ namespace DoDo.Terrain
                 m_terraformDensityJobHandle = m_terraformChunkJob.Schedule(m_densityNativeArray.Length, 64);
                 JobHandle.ScheduleBatchedJobs();
 
-                //m_terraformDensityJobHandle.Complete();
-
                 isJobScheduled = true;
             }
-
-            //if (m_jobHandlesList.Count > 0)
-            //{
-            //    // Si les jobs ont des dependancies , je peux ne pas foreach et regarder uniquement le premier [0]
-            //    foreach (JobHandle job in m_jobHandlesList)
-            //    {
-            //        if (job.IsCompleted)
-            //        {
-            //            job.Complete();
-            //            m_densityDataNativeArray.CopyTo(m_densityDataArray);
-            //            m_jobHandlesList.Remove(job);
-            //            UpdateChunkMesh(GetPointsData());
-            //        }
-            //    }
-            //}
-            //else
-            //{
-            //    UpdateChunkMesh(GetPointsData());
-            //    m_isTerraformed = false;
-            //}
         }
 
         private void LateUpdate()
@@ -150,6 +120,7 @@ namespace DoDo.Terrain
 
             if (m_isTerraformed && isJobScheduled)
             {
+                // Essayer de le mettre dans l'update directement ?
                 m_terraformDensityJobHandle.Complete();
                 UpdateChunkMesh(m_terraformChunkJob._terraformedPoints);
                 m_isTerraformed = false;
@@ -166,21 +137,6 @@ namespace DoDo.Terrain
         private void SetVisible(bool visible)
         {
             m_chunkObj.SetActive(visible);
-        }
-
-        private float Smoothstep(float minVal, float maxVal, float t)
-        {
-            t = Mathf.Clamp01((t - minVal) / (maxVal - minVal));
-            return t * t * (3 - 2 * t);
-        }
-        int3 CoordFromIndex(int i)
-        {
-            int3 coord;
-            coord.z = i / (m_meshSettings.numPointsPerAxis * m_meshSettings.numPointsPerAxis);
-            i -= (int)(coord.z * m_meshSettings.numPointsPerAxis * m_meshSettings.numPointsPerAxis);
-            coord.y = i / m_meshSettings.numPointsPerAxis;
-            coord.x = i % m_meshSettings.numPointsPerAxis;
-            return coord;
         }
 
         /******************************************/
@@ -278,12 +234,11 @@ namespace DoDo.Terrain
             m_triangleDataBuffer = new ComputeBuffer(m_maxTriangleCount, ComputeHelper.GetStride<TriangleData>(), ComputeBufferType.Append);
             m_positionPointsBuffer = new ComputeBuffer(m_numPoints, ComputeHelper.GetStride<float3>(), ComputeBufferType.Structured);
             m_densityPointsBuffer = new ComputeBuffer(m_numPoints, ComputeHelper.GetStride<float>(), ComputeBufferType.Structured);
-            m_pointsBuffer = new ComputeBuffer(m_numPoints, ComputeHelper.GetStride<PointData>());
         }
 
         public void ReleaseBuffers()
         {
-            ComputeHelper.Release(m_triangleDataBuffer, m_triCountBuffer, m_positionPointsBuffer, m_densityPointsBuffer, m_pointsBuffer);
+            ComputeHelper.Release(m_triangleDataBuffer, m_triCountBuffer, m_positionPointsBuffer, m_densityPointsBuffer);
         }
 
         /* Generate the density of each point using perlin noise */
@@ -354,23 +309,20 @@ namespace DoDo.Terrain
         // Utiliser le Job system pour éviter de faire des passages entre GPU et CPU (Il faut générer le collision mesh
         public void UpdateChunkMesh(NativeArray<float> densityPoints)
         {
+            // COMMENT UPDATE LE MESH SANS REPASSER PAR LE CPU ?
+            // (hypothese : Graphics.RenderPrimitives();)
+            // OU
+            // COMMENT NE PAS PASSER PAR LE GPU ET GARDER LES PERFS ?
+            // (hypothese : JobSystem)
+
             int marchKernel = 0;
             m_triangleDataBuffer.SetCounterValue(0);
             m_positionPointsBuffer.SetData(m_positionNativeArray.ToArray());
             m_densityPointsBuffer.SetData(densityPoints.ToArray());
 
-            //PointData[] points = new PointData[densityPoints.Length];
-            //for (int i = 0; i < densityPoints.Length; i++)
-            //{
-            //    points[i].position = m_positionNativeArray[i];
-            //    points[i].density = densityPoints[i];
-            //}
-            //m_pointsBuffer.SetData(points);
-
             m_meshComputeShader.SetBuffer(marchKernel, "triangles", m_triangleDataBuffer);
             m_meshComputeShader.SetBuffer(marchKernel, "positionPoints", m_positionPointsBuffer);
             m_meshComputeShader.SetBuffer(marchKernel, "densityPoints", m_densityPointsBuffer);
-            //m_meshComputeShader.SetBuffer(marchKernel, "points", m_pointsBuffer);
             m_meshComputeShader.SetInt("numPointsPerAxis", m_meshSettings.numPointsPerAxis);
             m_meshComputeShader.SetFloat("isoLevel", m_meshSettings.isoLevel);
 
@@ -386,12 +338,6 @@ namespace DoDo.Terrain
             TriangleData[] trianglesDataArray = new TriangleData[numTris];
             m_triangleDataBuffer.GetData(trianglesDataArray, 0, 0, numTris);
 
-            // COMMENT UPDATE LE MESH SANS REPASSER PAR LE CPU ?
-            // (hypothese : Graphics.RenderPrimitives();)
-            // OU
-            // COMMENT NE PAS PASSER PAR LE GPU ET GARDER LES PERFS ?
-            // (hypothese : JobSystem)
-
             Vector3[] vertices = new Vector3[numTris * 3];
             int[] triangles = new int[numTris * 3];
 
@@ -404,31 +350,19 @@ namespace DoDo.Terrain
                 }
             }
 
-            if (vertices.Length == 0)
-            {
-                Debug.Log("No vertices found to create the mesh on Chunk : [" + m_coord + "]");
-            }
-            else if (triangles.Length == 0)
-            {
-                Debug.Log("No triangles found to create the mesh on Chunk : [" + m_coord + "]");
-            }
-            else
+            if (vertices.Length > 0)
             {
                 AssignNewMesh(vertices, triangles);
             }
         }
 
+        // UNUSED
         public void TerraformChunkMesh(Vector3 brushCenter, int weight, float brushRadius, float brushPower)
         {
             // Terraform
             Vector3 center = m_center;
             m_densityPointsBuffer.SetData(m_newDensityNativeArray);
 
-            // Utiliser BurstCompile et JobSystem plutot que ComputeShader (car les network onject ne peut pas etre utiliser sur le GPU)
-            // Edit Point Density Compute into a simple update methode on CPU
-            //  -> Need to increase the number of chunk to decrease the number of point in 1 chunk
-
-            // SOLUTION 2 : Faire une queue des TerraformChunkMesh et les dépiler ici avant de GetData du GPU, comme ça tout est réalisé sur le GPU
             m_terraformComputeShader.SetBuffer(0, "densityPoints", m_densityPointsBuffer);
             m_terraformComputeShader.SetInt("numPointsPerAxis", m_meshSettings.numPointsPerAxis);
             m_terraformComputeShader.SetFloat("boundsSize", m_meshSettings.boundsSize);
@@ -492,7 +426,6 @@ namespace DoDo.Terrain
             m_mesh.triangles = triangles;
             m_mesh.RecalculateNormals();
 
-            meshCollider.sharedMesh = null;
             meshCollider.sharedMesh = m_mesh;
             SetCollider();
         }

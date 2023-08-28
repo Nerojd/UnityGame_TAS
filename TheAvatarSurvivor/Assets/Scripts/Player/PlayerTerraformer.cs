@@ -71,37 +71,38 @@ namespace DoDo.Player
             // Faire ensuite une boucle dans TERRAIN GENERATOR pour générer une nouveau mesh sur chaque LOD et mettre à les jours les chunks
 
             // Raycast to hit the terrain
-            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, terraformDistanceFar) &&
-                hit.collider.GetComponent<Chunk>() != null &&
-                !hasHit)
+            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, terraformDistanceFar)
+             && hit.collider.GetComponent<Chunk>() != null)
             {
-                onHitPoint = hit.point;
-                hasHit = true;
-
-                // Define a Plane with the normal of the camera and the on hit point of the terrain
-                Vector3 normalizedCameraNormal = cam.transform.forward.normalized;
-                terraformPlane = new Plane(normalizedCameraNormal, onHitPoint);
-            }
-
-            if (hasHit)
-            {
-                // Obtenir le rayon partant de la position de la caméra et passant par le point central de la vue du joueur
-                Vector3 viewportCenter = new Vector3(0.5f, 0.5f, 0f);
-                Ray ray = cam.ViewportPointToRay(viewportCenter);
-
-                // Calculer l'intersection entre le rayon et le plan
-                if (terraformPlane.Raycast(ray, out float distance))
+                if (!hasHit)
                 {
-                    // Calculer le point d'intersection
-                    Vector3 terraformPoint = ray.origin + ray.direction * distance;
+                    onHitPoint = hit.point;
+                    hasHit = true;
 
-                    float dstFromCam = (terraformPoint - cam.transform.position).magnitude;
-                    float weight01 = Mathf.InverseLerp(distanceNear, terraformDistanceFar, dstFromCam);
-                    float power = Mathf.Lerp(terraformPowerNear, terraformPowerFar, weight01);
-                    int wieght = 1;
-                    playerChunk.Terraform(terraformPoint, wieght, terraformRadius, power * terraformPower);
+                    // Define a Plane with the normal of the camera and the on hit point of the terrain
+                    Vector3 normalizedCameraNormal = cam.transform.forward.normalized;
+                    terraformPlane = new Plane(normalizedCameraNormal, onHitPoint);
                 }
-            }
+                else
+                {
+                    // Obtenir le rayon partant de la position de la caméra et passant par le point central de la vue du joueur
+                    Vector3 viewportCenter = new Vector3(0.5f, 0.5f, 0f);
+                    Ray ray = cam.ViewportPointToRay(viewportCenter);
+
+                    // Calculer l'intersection entre le rayon et le plan
+                    if (terraformPlane.Raycast(ray, out float distance))
+                    {
+                        // Calculer le point d'intersection
+                        Vector3 terraformPoint = ray.origin + ray.direction * distance;
+
+                        float dstFromCam = (terraformPoint - cam.transform.position).magnitude;
+                        float weight01 = Mathf.InverseLerp(distanceNear, terraformDistanceFar, dstFromCam);
+                        float power = Mathf.Lerp(terraformPowerNear, terraformPowerFar, weight01);
+                        int wieght = 1;
+                        playerChunk.Terraform(terraformPoint, wieght, terraformRadius, power * terraformPower);
+                    }
+                }
+            }            
         }
 
         private void SupersedeTerrain()

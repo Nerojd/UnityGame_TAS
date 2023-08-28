@@ -149,15 +149,17 @@ namespace DoDo.Player
                 if (TerrainGenerator.Instance.IsChunkCoordInDictionary(chunkCoord))
                 {
                     Chunk chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
-                    chunk.SetMaterial(materialInvalid);
+                    //chunk.SetMaterial(materialInvalid); // Set chunk to invalid if exist but no close enough
 
                     if (!MathUtility.SphereIntersectsBox(brushCenter, brushRadius, TerrainGenerator.CentreFromCoord(chunkCoord, meshSettings.numChunks, meshSettings.boundsSize), Vector3.one * meshSettings.boundsSize)) 
                         continue;
 
                     chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
-                    //chunk.TerraformChunkMesh(brushCenter, weight, brushRadius, brushPower);
                     chunk.UpdateDensityPoint(brushCenter, weight, brushRadius, brushPower);
-                    //chunk.SetMaterial(materialValid);
+                    //chunk.SetMaterial(materialValid); // Set chunk to valid if exist and close enough
+                    
+                    
+                    //chunk.TerraformChunkMesh(brushCenter, weight, brushRadius, brushPower);
                     //TerrainGenerator.Instance.TerraformOnServer(chunkCoord, brushCenter, weight, brushRadius, brushPower, isAddingMatter);
                 }
             }

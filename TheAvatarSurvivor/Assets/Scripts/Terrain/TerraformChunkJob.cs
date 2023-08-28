@@ -2,9 +2,6 @@
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Netcode;
-using Unity.VisualScripting;
-using UnityEngine;
 
 namespace DoDo.Terrain
 {
@@ -22,7 +19,8 @@ namespace DoDo.Terrain
 
         [WriteOnly] public NativeArray<float> _terraformedPoints;
 
-        int3 coordFromIndex(int i)
+        [BurstCompile]
+        private int3 CoordFromIndex(int i)
         {
             int3 coord;
             coord.z = i / (_numPointsPerAxis * _numPointsPerAxis);
@@ -32,11 +30,12 @@ namespace DoDo.Terrain
             return coord;
         }
 
+        [BurstCompile]
         public void Execute(int index)
         {
             for (int i = 0; i < _terraformData.Length; i++)
             {
-                float3 pos = _chunkCenter + (float3)coordFromIndex(index) * _pointSpacing - _boundsSize / 2;
+                float3 pos = _chunkCenter + (float3)CoordFromIndex(index) * _pointSpacing - _boundsSize / 2;
                 float3 offset = pos - _terraformData[i].brushCenter;
                 float sqrDst = math.dot(offset, offset);
 
@@ -49,14 +48,15 @@ namespace DoDo.Terrain
                     float result = _originalPoints[index];
                     result += _terraformData[i].weight * _deltaTime * brushWeight * _terraformData[i].brushPower;
 
-                    float isoLevelLimit = _isoLevel * 2f;
-                    if (result > isoLevelLimit)
+                    float maxIsoLevel = _isoLevel * 2f;
+                    float minIsoLevel = 0f;
+                    if (result > maxIsoLevel)
                     {
-                        result = isoLevelLimit;
+                        result = maxIsoLevel;
                     }
-                    else if (result < -isoLevelLimit)
+                    else if (result < minIsoLevel)
                     {
-                        result = -isoLevelLimit;
+                        result = minIsoLevel;
                     }
 
                     _originalPoints[index] = result;

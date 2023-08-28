@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoUpdate: 1
   terrainLayer: Terrain
-  numChunks: {x: 6, y: 6, z: 6}
+  numChunks: {x: 12, y: 8, z: 12}
   visibleDstThreshold: 35
-  boundsSize: 6
+  boundsSize: 4
   isoLevel: 7
-  numPointsPerAxis: 8
+  numPointsPerAxis: 20

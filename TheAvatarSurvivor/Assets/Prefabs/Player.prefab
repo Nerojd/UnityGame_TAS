@@ -428,15 +428,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terraformRadius: 1.4
-  terraformPower: 5
-  terraformPowerNear: 5
-  terraformPowerFar: 25
+  terraformPower: 4
+  terraformPowerNear: 2
+  terraformPowerFar: 22
   terraformDistanceFar: 20
-  supersedeRadius: 1.2
+  supersedeRadius: 1.4
   supersedePower: 1.25
-  supersedePowerNear: 25
-  supersedePowerFar: 10
-  supersedeDistanceFar: 8
+  supersedePowerNear: 14
+  supersedePowerFar: 4
+  supersedeDistanceFar: 10
   cam: {fileID: 435173585760138687}
 --- !u!114 &6528073035512197091
 MonoBehaviour:

@@ -40,20 +40,20 @@ void CSMain (int3 id : SV_DispatchThreadID)
 		float brushWeight = 1 - smoothstep(brushRadius * 0.5, brushRadius, dst);
 
 		int index = indexFromCoord(id.x, id.y, id.z);
-		float finalVal = points[index];
-		finalVal += weight * deltaTime * brushWeight * brushPower;
+        float result = points[index];
+		result += weight * deltaTime * brushWeight * brushPower;
 
 		float maxIsoLevel = isoLevel * 2;
-		if (finalVal > maxIsoLevel)
+		float minIsoLevel = 0;
+		if (result > maxIsoLevel)
 		{
-			finalVal = maxIsoLevel;
+			result = maxIsoLevel;
 		}
-
-		float minIsoLevel = -isoLevel * 2;
-		if (finalVal < minIsoLevel)
+		else if (result < minIsoLevel)
 		{
-			finalVal = minIsoLevel;
+			result = minIsoLevel;
 		}
-		points[index] = finalVal;
+		
+		points[index] = result;
 	}
 }
