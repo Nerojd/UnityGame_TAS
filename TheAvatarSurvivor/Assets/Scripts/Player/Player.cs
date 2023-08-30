@@ -83,13 +83,13 @@ namespace DoDo.Player
 
         void TerrainGenerator_OnTerrainCreationStarted(object sender, System.EventArgs e)
         {
-            //gameObject.GetComponent<Rigidbody>().useGravity = true;
-            //gameObject.GetComponent<Rigidbody>().isKinematic = false;
+            gameObject.GetComponent<Rigidbody>().useGravity = false;
+            gameObject.GetComponent<Rigidbody>().isKinematic = true;
         }
         void TerrainGenerator_OnTerrainCreationFinished(object sender, System.EventArgs e)
         {
-            //gameObject.GetComponent<Rigidbody>().useGravity = true;
-            //gameObject.GetComponent<Rigidbody>().isKinematic = false;
+            gameObject.GetComponent<Rigidbody>().useGravity = true;
+            gameObject.GetComponent<Rigidbody>().isKinematic = false;
         }
 
         /******************************************/

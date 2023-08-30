@@ -88,6 +88,7 @@ namespace DoDo.Terrain
             if (!m_isSetup) return;
             if (!IsVisible()) return;
 
+            // Faire dans un Update moins rapide ou sauter des frames d'update ?
             if (m_isTerraformed && m_terraformingDataList.Count > 0)
             {
                 m_terraformingDataNativeArray = new NativeArray<TerraformingData>(m_terraformingDataList.Count, Allocator.Persistent);
@@ -380,6 +381,8 @@ namespace DoDo.Terrain
             int numPoints = m_meshSettings.numPointsPerAxis * m_meshSettings.numPointsPerAxis * m_meshSettings.numPointsPerAxis;
             float[] pointsData = new float[numPoints];
             m_densityPointsBuffer.GetData(pointsData, 0, 0, numPoints);
+
+            // Set data in the array
         }
 
         public void UpdateDensityPoint(Vector3 brushCenter, int weight, float brushRadius, float brushPower)

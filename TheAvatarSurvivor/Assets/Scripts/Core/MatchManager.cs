@@ -95,7 +95,8 @@ public class MatchManager : NetworkBehaviour
 
         if (allClientsHasSpawned)
         {
-            OnAllClientPlayerSpawned?.Invoke(this, EventArgs.Empty);
+            TerrainGenerator.Instance.InitChunkOnServer();
+            //OnAllClientPlayerSpawned?.Invoke(this, EventArgs.Empty);
         }
     }
 

@@ -20,6 +20,8 @@ namespace DoDo.Player
         int chunksVisibleInViewDst;
         MeshSettings meshSettings;
 
+        Dictionary<Vector3, Chunk> chunkDictionary;
+
         /*******************************************/
         /*              Unity Methods              */
         /*******************************************/
@@ -78,9 +80,9 @@ namespace DoDo.Player
             //}
 
             // Cross product between the number of chunks X, Y, Z and the given position relative to the maximum boundsSize X, Y, Z
-            float currentChunkCoordX = CenterToChunkCoord(pos.x);
-            float currentChunkCoordY = CenterToChunkCoord(pos.y);
-            float currentChunkCoordZ = CenterToChunkCoord(pos.z);
+            float currentChunkCoordX = CenterToChunkCoord(pos.x, meshSettings.numChunks.x);
+            float currentChunkCoordY = CenterToChunkCoord(pos.y, meshSettings.numChunks.y);
+            float currentChunkCoordZ = CenterToChunkCoord(pos.z, meshSettings.numChunks.z);
 
             int currentChunkCoordXRounded = Mathf.RoundToInt(currentChunkCoordX);
             int currentChunkCoordYRounded = Mathf.RoundToInt(currentChunkCoordY);
@@ -99,9 +101,9 @@ namespace DoDo.Player
             }
         }
 
-        float CenterToChunkCoord(float pos)
+        float CenterToChunkCoord(float pos, int numChunkAxis)
         {
-            return (meshSettings.numChunks.x - 1) * (pos + (meshSettings.numChunks.x * meshSettings.boundsSize / 2)) / (meshSettings.numChunks.x * meshSettings.boundsSize);
+            return (numChunkAxis - 1) * (pos + (numChunkAxis * meshSettings.boundsSize / 2)) / (numChunkAxis * meshSettings.boundsSize);
         }
 
         Vector3 ChunkCoordFromCenter(Vector3 center)
@@ -149,14 +151,14 @@ namespace DoDo.Player
                 if (TerrainGenerator.Instance.IsChunkCoordInDictionary(chunkCoord))
                 {
                     Chunk chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
-                    //chunk.SetMaterial(materialInvalid); // Set chunk to invalid if exist but no close enough
+                    chunk.SetMaterial(materialInvalid); // Set chunk to invalid if exist but no close enough
 
                     if (!MathUtility.SphereIntersectsBox(brushCenter, brushRadius, TerrainGenerator.CentreFromCoord(chunkCoord, meshSettings.numChunks, meshSettings.boundsSize), Vector3.one * meshSettings.boundsSize)) 
                         continue;
 
                     chunk = TerrainGenerator.Instance.GetChunk(chunkCoord);
                     chunk.UpdateDensityPoint(brushCenter, weight, brushRadius, brushPower);
-                    //chunk.SetMaterial(materialValid); // Set chunk to valid if exist and close enough
+                    chunk.SetMaterial(materialValid); // Set chunk to valid if exist and close enough
                     
                     
                     //chunk.TerraformChunkMesh(brushCenter, weight, brushRadius, brushPower);

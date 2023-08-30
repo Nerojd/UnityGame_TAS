@@ -279,6 +279,7 @@ namespace DoDo.Terrain
             return -totalBounds / 2 + coord * boundsSize + Vector3.one * boundsSize / 2;
         }
 
+        public int GetChunkCountInDictionary() => chunkDictionary.Count;
         public bool IsChunkCoordInDictionary(Vector3 coord) => chunkDictionary.ContainsKey(coord);
         public Chunk GetChunk(Vector3 coord) => chunkDictionary[coord];
         public MeshSettings GetMeshSettings() => meshSettings;
